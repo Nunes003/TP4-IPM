@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenPulse – Protótipo Completo</title>
+<style>
+/* ===== DESIGN SYSTEM (Relatório: cores pastel, sem sons abruptos, animações lentas 5-6s) ===== */
+:root {
+  --blue:#B8D8E8;--blue-dark:#8BBDD4;--blue-light:#D6EAF4;
+  --mint:#B8E8D0;--mint-dark:#7DCBA8;--mint-light:#D4F2E2;
+  --yellow:#F5E6A3;--yellow-dark:#E8D580;
+  --beige:#F5F0E1;--beige-dark:#E8E0C8;
+  --peach:#F5D5C8;--peach-dark:#E8B8A6;
+  --white:#FEFCF6;--text:#4A4A4A;--text-light:#7A7A7A;
+  --shadow:rgba(0,0,0,0.06);--radius:24px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#E8E0D0;display:flex;justify-content:center;align-items:center;min-height:100vh;color:var(--text);overflow:hidden;}
+
+.phone{width:390px;height:844px;background:var(--white);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.15),0 0 0 2px #d0d0d0;}
+
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .5s,transform .5s;transform:scale(.97);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.screen::-webkit-scrollbar{display:none;}
+.screen.active{opacity:1;pointer-events:all;transform:scale(1);}
+
+.status-bar{display:flex;justify-content:space-between;padding:14px 28px 6px;font-size:13px;font-weight:600;color:var(--text-light);flex-shrink:0;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:18px 32px;border:none;border-radius:60px;font-size:17px;font-weight:600;cursor:pointer;transition:all .3s;box-shadow:0 4px 16px var(--shadow);font-family:inherit;color:var(--text);min-height:52px;min-width:180px;}
+.btn:active{transform:scale(.95);}
+.btn-mint{background:var(--mint);}.btn-blue{background:var(--blue);}.btn-yellow{background:var(--yellow);}.btn-peach{background:var(--peach);}
+
+.tea{font-size:72px;text-align:center;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(0,0,0,.08));}
+.tea-sm{font-size:48px;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+
+.bubble{background:var(--white);border-radius:var(--radius);padding:16px 20px;margin:0 20px;box-shadow:0 4px 20px var(--shadow);text-align:center;font-size:16px;line-height:1.6;border:2px solid var(--beige);position:relative;}
+.bubble::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:20px;height:10px;background:var(--white);clip-path:polygon(50% 0%,0% 100%,100% 100%);}
+
+.title{font-size:24px;font-weight:700;text-align:center;}
+.subtitle{font-size:14px;color:var(--text-light);text-align:center;}
+
+.card{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);display:flex;align-items:center;gap:14px;}
+.card .icon{font-size:32px;flex-shrink:0;}
+.card .info{flex:1;}
+.card .label{font-size:13px;color:var(--text-light);}
+.card .value{font-size:20px;font-weight:700;}
+
+.nav{display:flex;justify-content:space-around;padding:10px 0 26px;background:var(--white);border-top:1px solid var(--beige);flex-shrink:0;}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--text-light);cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 10px;min-height:44px;min-width:44px;}
+.nav button .ni{font-size:22px;}
+.nav button.on{color:var(--mint-dark);}
+
+.back{position:absolute;top:52px;left:16px;background:var(--white);border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;box-shadow:0 2px 8px var(--shadow);display:flex;align-items:center;justify-content:center;z-index:10;}
+
+.content{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 20px;gap:14px;overflow-y:auto;}
+
+/* SPLASH */
+#splash{background:linear-gradient(160deg,var(--blue),var(--mint) 50%,var(--yellow));align-items:center;justify-content:center;text-align:center;cursor:pointer;}
+#splash .logo{font-size:46px;font-weight:800;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.08);letter-spacing:-1px;}
+#splash .sub{font-size:15px;color:rgba(255,255,255,.8);margin-bottom:30px;}
+#splash .tap{font-size:14px;color:rgba(255,255,255,.6);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+
+/* CALIBRATION */
+#calibration{background:linear-gradient(180deg,var(--blue-light),var(--white) 40%);}
+.calib-circle{width:180px;height:180px;border-radius:50%;background:var(--white);box-shadow:0 8px 32px var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;}
+.calib-ring{position:absolute;inset:-6px;border-radius:50%;border:4px solid var(--mint);border-top-color:transparent;animation:spin 1.5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.calib-circle .bpm{font-size:36px;font-weight:800;color:var(--mint-dark);}
+.calib-circle .bpm-label{font-size:12px;color:var(--text-light);}
+.calib-bar{width:260px;height:8px;background:var(--beige);border-radius:4px;overflow:hidden;}
+.calib-bar-fill{height:100%;background:var(--mint-dark);border-radius:4px;transition:width .5s;width:0%;}
+.calib-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;}
+.calib-val{background:var(--white);border-radius:16px;padding:12px;text-align:center;box-shadow:0 2px 8px var(--shadow);}
+.calib-val .cv-label{font-size:11px;color:var(--text-light);}
+.calib-val .cv-num{font-size:22px;font-weight:700;}
+
+/* STORY */
+#story{background:linear-gradient(180deg,var(--yellow) 0%,var(--white) 30%);}
+.story-illust{width:260px;height:160px;background:var(--beige);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:64px;box-shadow:0 4px 16px var(--shadow);margin-top:8px;flex-shrink:0;}
+.dots{display:flex;gap:6px;justify-content:center;}
+.dots .d{width:8px;height:8px;border-radius:50%;background:var(--beige-dark);transition:.3s;}
+.dots .d.on{background:var(--yellow-dark);width:24px;border-radius:4px;}
+
+/* GAME */
+#game{background:linear-gradient(180deg,var(--mint) 0%,var(--white) 25%);}
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;}
+.game-card{aspect-ratio:1;background:var(--white);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:48px;cursor:pointer;transition:.3s;box-shadow:0 4px 16px var(--shadow);border:3px solid transparent;gap:4px;min-height:44px;}
+.game-card .emo-label{font-size:12px;font-weight:600;color:var(--text-light);}
+.game-card:active{transform:scale(.94);}
+.game-card.correct{border-color:var(--mint-dark);background:var(--mint-light);animation:pop .5s;}
+.game-card.wrong{border-color:var(--peach);background:#FEF0EB;animation:shake .5s;}
+@keyframes pop{50%{transform:scale(1.06);}}
+@keyframes shake{25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
+
+.stress-hud{display:flex;align-items:center;gap:8px;background:var(--white);padding:8px 16px;border-radius:40px;box-shadow:0 2px 10px var(--shadow);font-size:13px;font-weight:600;width:100%;}
+.stress-hud .bar{flex:1;height:10px;background:var(--beige);border-radius:5px;overflow:hidden;}
+.stress-hud .bar-fill{height:100%;border-radius:5px;background:var(--mint-dark);transition:width .5s,background .5s;}
+.stress-hud .bar-fill.med{background:var(--yellow-dark);}
+.stress-hud .bar-fill.high{background:var(--peach-dark);}
+.bpm-badge{background:var(--white);border-radius:12px;padding:4px 10px;font-size:12px;box-shadow:0 1px 4px var(--shadow);display:flex;align-items:center;gap:4px;}
+
+/* SENSOR */
+#sensor{background:linear-gradient(180deg,var(--peach) 0%,var(--white) 30%);}
+.iot-device{width:170px;height:170px;border-radius:50%;background:var(--white);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px var(--shadow);position:relative;}
+.iot-device .bracelet{font-size:64px;}
+.iot-ring{position:absolute;inset:-6px;border-radius:50%;border:4px solid var(--mint);transition:.5s;}
+.iot-ring.med{border-color:var(--yellow-dark);}
+.iot-ring.high{border-color:var(--peach-dark);animation:pring 1s infinite;}
+@keyframes pring{50%{transform:scale(1.04);opacity:.7;}}
+.stress-meter{width:100%;max-width:280px;}
+.stress-meter .meter-bar{width:100%;height:16px;background:var(--beige);border-radius:8px;overflow:hidden;}
+.stress-meter .meter-fill{height:100%;border-radius:8px;background:var(--mint-dark);transition:.6s;width:20%;}
+.stress-meter .meter-fill.med{width:55%!important;background:var(--yellow-dark);}
+.stress-meter .meter-fill.high{width:90%!important;background:var(--peach-dark);}
+.meter-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);font-weight:600;margin-top:4px;}
+.iot-tag{display:flex;align-items:center;gap:6px;background:var(--white);padding:10px 16px;border-radius:14px;font-size:12px;color:var(--text-light);box-shadow:0 2px 8px var(--shadow);}
+.live-data{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;}
+.live-data .ld{text-align:center;background:var(--white);border-radius:14px;padding:10px 6px;box-shadow:0 2px 8px var(--shadow);}
+.live-data .ld .ld-val{font-size:20px;font-weight:700;}
+.live-data .ld .ld-lbl{font-size:10px;color:var(--text-light);}
+
+/* CALM CHOICE */
+#calm-choice{background:linear-gradient(180deg,#C8DAE8,var(--white) 50%);align-items:center;justify-content:center;text-align:center;}
+#calm-choice .choice-btns{display:flex;flex-direction:column;gap:16px;width:100%;padding:0 24px;}
+#calm-choice .choice-btns .btn{width:100%;font-size:18px;padding:24px;}
+
+/* BREATHING TRIANGLE 4-4-4 */
+#calm-breathe{background:linear-gradient(180deg,#C5D8E8,var(--white) 50%);align-items:center;justify-content:center;text-align:center;}
+.triangle-container{width:200px;height:180px;position:relative;margin:8px 0;}
+.triangle-svg{width:100%;height:100%;}
+.triangle-path{fill:none;stroke:var(--blue-dark);stroke-width:4;stroke-linecap:round;stroke-dasharray:510;stroke-dashoffset:510;}
+.triangle-path.animating{animation:drawTri 12s linear infinite;}
+@keyframes drawTri{0%{stroke-dashoffset:510;}100%{stroke-dashoffset:0;}}
+.breath-text{font-size:26px;font-weight:700;color:var(--blue-dark);}
+.breath-phase{font-size:15px;color:var(--text-light);min-height:22px;}
+.breath-progress{display:flex;gap:5px;}
+.breath-progress span{width:36px;height:5px;border-radius:3px;background:var(--beige);transition:.5s;}
+.breath-progress span.done{background:var(--mint-dark);}
+.haptic-badge{display:flex;align-items:center;gap:6px;background:var(--beige);padding:10px 20px;border-radius:40px;font-size:14px;color:var(--text-light);}
+
+/* TICKLE/PURR */
+#calm-tickle{background:linear-gradient(180deg,var(--mint-light),var(--white) 50%);align-items:center;justify-content:center;text-align:center;}
+.purr-circle{width:180px;height:180px;border-radius:50%;background:linear-gradient(135deg,var(--mint),var(--yellow));display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 8px 32px rgba(125,203,168,.3);}
+.purr-circle.animating{animation:purr .4s ease-in-out infinite alternate;}
+@keyframes purr{0%{transform:scale(1) rotate(-1deg);}100%{transform:scale(1.04) rotate(1deg);}}
+.vibration-waves{display:flex;gap:3px;align-items:flex-end;height:30px;}
+.vibration-waves span{width:4px;background:var(--mint-dark);border-radius:2px;animation:wave .6s ease-in-out infinite alternate;}
+.vibration-waves span:nth-child(1){height:10px;animation-delay:0s;}
+.vibration-waves span:nth-child(2){height:20px;animation-delay:.1s;}
+.vibration-waves span:nth-child(3){height:30px;animation-delay:.2s;}
+.vibration-waves span:nth-child(4){height:20px;animation-delay:.3s;}
+.vibration-waves span:nth-child(5){height:10px;animation-delay:.4s;}
+@keyframes wave{to{height:6px;}}
+
+/* REWARD */
+#reward{background:linear-gradient(180deg,var(--yellow),var(--white) 45%);align-items:center;justify-content:center;}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:50;}
+.confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:cfall 3s ease-in forwards;}
+@keyframes cfall{0%{transform:translateY(-20px) rotate(0);opacity:1;}100%{transform:translateY(850px) rotate(720deg);opacity:0;}}
+.badge{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),var(--peach));display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 8px 24px rgba(0,0,0,.08);animation:badgePop .6s ease .2s backwards;}
+@keyframes badgePop{0%{transform:scale(0);}60%{transform:scale(1.15);}100%{transform:scale(1);}}
+.stars{display:flex;gap:6px;font-size:36px;animation:starsIn .8s ease backwards;}
+@keyframes starsIn{0%{transform:scale(0) rotate(-20deg);opacity:0;}}
+.reward-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
+
+/* PROFILE */
+#profile{background:linear-gradient(180deg,var(--blue-light),var(--white) 25%);}
+.avatar-ring{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--mint),var(--blue));display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 6px 20px var(--shadow);}
+.level-bar{width:100%;max-width:260px;height:12px;background:var(--beige);border-radius:6px;overflow:hidden;}
+.level-fill{height:100%;background:linear-gradient(90deg,var(--mint-dark),var(--blue-dark));border-radius:6px;transition:.5s;}
+.achievements{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;}
+.ach{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--white);padding:12px 6px;border-radius:16px;box-shadow:0 2px 8px var(--shadow);font-size:10px;text-align:center;color:var(--text-light);}
+.ach .ach-icon{font-size:28px;}
+.ach.locked{opacity:.4;filter:grayscale(1);}
+.session-list{width:100%;display:flex;flex-direction:column;gap:8px;}
+.session-item{display:flex;align-items:center;gap:12px;background:var(--white);padding:12px;border-radius:16px;box-shadow:0 2px 8px var(--shadow);}
+.session-item .s-date{font-size:12px;color:var(--text-light);}
+.session-item .s-info{flex:1;}
+.session-item .s-stars{font-size:18px;}
+
+/* PROGRESS */
+#progress{background:linear-gradient(180deg,var(--mint-light),var(--white) 25%);}
+.heroes{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.heroes h3{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.hero-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--beige);}
+.hero-row:last-child{border:none;}
+.hero-av{width:36px;height:36px;border-radius:50%;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.hero-name{font-weight:600;flex:1;font-size:14px;}
+.hero-badge{font-size:20px;}
+
+/* DASHBOARD */
+#dashboard{background:linear-gradient(180deg,#E8D5F0,var(--white) 25%);}
+.dash-header{display:flex;align-items:center;gap:12px;width:100%;padding:4px 0;}
+.dash-header .patient-av{width:44px;height:44px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.chart-card{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.chart-card h4{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding:8px 0;}
+.bar-chart .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar-chart .bar-col .bar-val{font-size:9px;color:var(--text-light);}
+.bar-chart .bar-col .bar-rect{width:100%;border-radius:4px 4px 0 0;transition:.5s;min-height:4px;}
+.bar-chart .bar-col .bar-day{font-size:9px;color:var(--text-light);}
+.dash-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
+.dash-metric{background:var(--white);border-radius:16px;padding:14px;text-align:center;box-shadow:0 2px 10px var(--shadow);}
+.dash-metric .dm-val{font-size:24px;font-weight:700;}
+.dash-metric .dm-lbl{font-size:11px;color:var(--text-light);}
+.calm-pref{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.calm-pref h4{font-size:14px;margin-bottom:10px;}
+.pref-bar{display:flex;align-items:center;gap:8px;margin:6px 0;}
+.pref-bar .pb-label{font-size:12px;width:80px;}
+.pref-bar .pb-track{flex:1;height:10px;background:var(--beige);border-radius:5px;overflow:hidden;}
+.pref-bar .pb-fill{height:100%;border-radius:5px;}
+
+.overlay{position:absolute;inset:0;background:var(--white);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:100;opacity:0;pointer-events:none;transition:.5s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.overlay .omsg{font-size:18px;font-weight:600;text-align:center;padding:0 40px;color:var(--text-light);}
+
+.lock-row{display:flex;align-items:center;gap:8px;background:var(--beige);padding:10px 16px;border-radius:12px;font-size:12px;color:var(--text-light);width:100%;}
+
+/* LOGIN */
+#login{background:linear-gradient(160deg,var(--blue),var(--mint) 50%,var(--yellow));align-items:center;justify-content:center;text-align:center;}
+.login-box{background:var(--white);border-radius:var(--radius);padding:32px 24px;width:85%;box-shadow:0 8px 32px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:16px;align-items:center;}
+.login-box input{width:100%;padding:14px 18px;border:2px solid var(--beige-dark);border-radius:16px;font-size:16px;font-family:inherit;outline:none;transition:.3s;background:var(--beige);color:var(--text);}
+.login-box input:focus{border-color:var(--mint-dark);background:var(--white);}
+.login-box input::placeholder{color:var(--text-light);}
+.login-error{color:#e07a5f;font-size:13px;font-weight:600;min-height:20px;}
+.login-users{width:100%;margin-top:4px;font-size:12px;color:var(--text-light);text-align:left;}
+.login-users summary{cursor:pointer;font-weight:600;color:var(--text-light);}
+.login-users table{width:100%;margin-top:6px;border-collapse:collapse;}
+.login-users td{padding:4px 8px;border-bottom:1px solid var(--beige);font-family:monospace;font-size:12px;}
+
+/* LOJA / PRÉMIOS */
+#shop{background:linear-gradient(180deg,var(--yellow) 0%,var(--white) 25%);}
+.points-banner{width:100%;background:linear-gradient(135deg,var(--yellow),var(--peach));border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px var(--shadow);}
+.points-banner .pb-pts{font-size:28px;font-weight:800;}
+.points-banner .pb-lbl{font-size:12px;color:var(--text-light);}
+.partner-section{width:100%;}
+.partner-section h3{font-size:15px;font-weight:700;margin:8px 0;display:flex;align-items:center;gap:6px;}
+.prize-grid{display:flex;flex-direction:column;gap:10px;width:100%;}
+.prize-card{background:var(--white);border-radius:20px;padding:14px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 16px var(--shadow);transition:.3s;cursor:pointer;border:2px solid transparent;}
+.prize-card:active{transform:scale(.97);}
+.prize-card.redeemed{border-color:var(--mint-dark);opacity:.65;}
+.prize-card .prize-icon{font-size:40px;flex-shrink:0;width:56px;height:56px;background:var(--beige);border-radius:16px;display:flex;align-items:center;justify-content:center;}
+.prize-card .prize-info{flex:1;}
+.prize-card .prize-name{font-size:15px;font-weight:700;}
+.prize-card .prize-partner{font-size:11px;color:var(--text-light);}
+.prize-card .prize-desc{font-size:12px;color:var(--text-light);margin-top:2px;}
+.prize-card .prize-cost{display:flex;align-items:center;gap:4px;background:var(--yellow);padding:6px 14px;border-radius:30px;font-size:13px;font-weight:700;flex-shrink:0;white-space:nowrap;}
+.prize-card .prize-cost.affordable{background:var(--mint);}
+.prize-card .prize-cost.got{background:var(--beige);color:var(--text-light);font-size:11px;}
+.points-how{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);font-size:13px;line-height:1.8;}
+.points-how h4{font-size:14px;margin-bottom:6px;}
+.points-row{display:flex;align-items:center;gap:8px;}
+.points-row .pr-pts{font-weight:700;color:var(--mint-dark);min-width:50px;}
+
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:.3s;border-radius:44px;}
+.modal-bg.show{opacity:1;pointer-events:all;}
+.modal-box{background:var(--white);border-radius:var(--radius);padding:28px 24px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.15);transform:scale(.9);transition:.3s;}
+.modal-bg.show .modal-box{transform:scale(1);}
+
+/* CHECK-IN DIÁRIO */
+#checkin{background:linear-gradient(180deg,var(--mint-light),var(--white) 40%);}
+.checkin-q{width:100%;background:var(--white);border-radius:20px;padding:16px 18px;box-shadow:0 4px 16px var(--shadow);display:flex;align-items:center;gap:12px;transition:.3s;}
+.checkin-q .cq-emoji{font-size:32px;flex-shrink:0;}
+.checkin-q .cq-text{flex:1;font-size:15px;font-weight:600;line-height:1.4;}
+.checkin-q .cq-btns{display:flex;gap:8px;flex-shrink:0;}
+.cq-btn{width:52px;height:44px;border:2px solid var(--beige-dark);border-radius:14px;background:var(--white);font-size:14px;font-weight:700;cursor:pointer;transition:.3s;font-family:inherit;}
+.cq-btn:active{transform:scale(.92);}
+.cq-btn.yes{}
+.cq-btn.no{}
+.cq-btn.selected-yes{background:var(--mint);border-color:var(--mint-dark);}
+.cq-btn.selected-no{background:var(--peach);border-color:var(--peach-dark);}
+.checkin-result{width:100%;background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:0 4px 16px var(--shadow);text-align:center;display:none;}
+.checkin-result .cr-emoji{font-size:56px;margin-bottom:6px;}
+.checkin-result .cr-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.checkin-result .cr-desc{font-size:14px;color:var(--text-light);line-height:1.6;}
+.checkin-progress{display:flex;gap:6px;}
+.checkin-progress span{width:40px;height:5px;border-radius:3px;background:var(--beige);transition:.4s;}
+.checkin-progress span.done{background:var(--mint-dark);}
+
+/* CALENDÁRIO HUMOR */
+.cal-card{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.cal-card h4{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-header .cal-month{font-size:15px;font-weight:700;}
+.cal-header button{background:var(--beige);border:none;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;font-family:inherit;}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:10px;color:var(--text-light);font-weight:600;margin-bottom:4px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-day{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;position:relative;cursor:default;transition:.3s;}
+.cal-day.empty{background:transparent;}
+.cal-day .cd-num{z-index:1;}
+.cal-day.today{box-shadow:inset 0 0 0 2px var(--text);border-radius:10px;}
+.cal-legend{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:10px;font-size:10px;color:var(--text-light);}
+.cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend .cl-box{width:14px;height:14px;border-radius:4px;}
+.cal-scale{display:flex;align-items:center;gap:4px;width:100%;margin-top:6px;}
+.cal-scale .cs-bar{flex:1;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--mint),var(--yellow),var(--peach-dark));}
+.cal-scale .cs-lbl{font-size:9px;color:var(--text-light);font-weight:600;}
+
+/* ADAPTIVE THRESHOLD */
+.threshold-card{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.threshold-card h4{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.th-formula{font-family:monospace;font-size:12px;background:var(--beige);padding:10px 14px;border-radius:12px;line-height:1.8;color:var(--text);}
+.th-indicator{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.th-indicator .th-bar{flex:1;height:14px;background:var(--beige);border-radius:7px;position:relative;overflow:hidden;}
+.th-indicator .th-fill{height:100%;border-radius:7px;transition:.6s;}
+.th-indicator .th-marker{position:absolute;top:-4px;width:3px;height:22px;background:var(--text);border-radius:2px;transition:.6s;}
+.th-indicator .th-val{font-size:14px;font-weight:700;min-width:40px;text-align:right;}
+.th-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-top:6px;}
+
+/* HAPTIC SYNC */
+.haptic-sync{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.haptic-sync h4{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.hs-visual{display:flex;align-items:center;gap:12px;}
+.hs-heart{font-size:36px;animation:heartbeat 1s ease-in-out infinite;}
+@keyframes heartbeat{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+.hs-wave{flex:1;height:40px;display:flex;align-items:flex-end;gap:2px;}
+.hs-wave span{flex:1;background:var(--mint-dark);border-radius:2px 2px 0 0;transition:.4s;animation:hsWave .8s ease-in-out infinite alternate;}
+.hs-wave span:nth-child(odd){animation-delay:.2s;}
+@keyframes hsWave{0%{height:8px;}100%{height:100%;}}
+.hs-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.hs-metric{text-align:center;background:var(--beige);border-radius:12px;padding:8px 4px;}
+.hs-metric .hm-val{font-size:16px;font-weight:700;}
+.hs-metric .hm-lbl{font-size:9px;color:var(--text-light);}
+
+/* HOTSPOTS */
+.hotspot-card{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.hotspot-card h4{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.hotspot-timeline{width:100%;position:relative;}
+.ht-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--beige);}
+.ht-row:last-child{border:none;}
+.ht-scene{font-size:11px;font-weight:600;min-width:60px;color:var(--text-light);}
+.ht-bar-track{flex:1;height:16px;background:var(--beige);border-radius:8px;overflow:hidden;position:relative;}
+.ht-bar-fill{height:100%;border-radius:8px;transition:.5s;}
+.ht-peak{font-size:11px;font-weight:700;min-width:32px;text-align:right;}
+.ht-flag{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:10px;}
+
+/* COMMUNITY */
+.community-card{width:100%;background:linear-gradient(135deg,var(--mint-light),var(--blue-light));border-radius:var(--radius);padding:18px;box-shadow:0 4px 16px var(--shadow);text-align:center;}
+.community-card h4{font-size:15px;font-weight:700;margin-bottom:8px;}
+.comm-bar{width:100%;height:22px;background:rgba(255,255,255,.6);border-radius:11px;overflow:hidden;position:relative;margin:8px 0;}
+.comm-fill{height:100%;background:linear-gradient(90deg,var(--mint-dark),var(--blue-dark));border-radius:11px;transition:.6s;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:10px;font-weight:700;color:#fff;}
+.comm-avatars{display:flex;justify-content:center;gap:-4px;margin:8px 0;}
+.comm-avatars span{width:32px;height:32px;border-radius:50%;background:var(--white);display:flex;align-items:center;justify-content:center;font-size:16px;margin-left:-6px;box-shadow:0 2px 6px var(--shadow);border:2px solid var(--mint-light);}
+.comm-avatars span:first-child{margin-left:0;}
+.comm-goal{font-size:12px;color:var(--text);font-weight:600;margin-top:4px;}
+.comm-sub{font-size:11px;color:var(--text-light);margin-top:2px;}
+
+/* ZENCOINS */
+.zencoin-banner{width:100%;background:linear-gradient(135deg,#E8D5F0,var(--yellow));border-radius:var(--radius);padding:18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px var(--shadow);}
+.zencoin-banner .zc-pts{font-size:24px;font-weight:800;}
+.zencoin-banner .zc-sub{font-size:11px;color:var(--text-light);}
+.zc-convert{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:var(--white);padding:8px 14px;border-radius:14px;box-shadow:0 2px 8px var(--shadow);width:100%;}
+.zc-arrow{color:var(--mint-dark);font-size:18px;}
+.parent-lock{width:100%;background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 16px var(--shadow);}
+.parent-lock h4{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.pin-input{display:flex;gap:8px;justify-content:center;margin:10px 0;}
+.pin-input input{width:44px;height:52px;border:2px solid var(--beige-dark);border-radius:14px;text-align:center;font-size:22px;font-weight:700;font-family:inherit;outline:none;background:var(--beige);transition:.3s;}
+.pin-input input:focus{border-color:var(--mint-dark);background:var(--white);}
+
+/* SOFT CALM (pós check-in negativo) */
+#soft-calm{background:linear-gradient(180deg,#C8DAE8,var(--mint-light) 40%,var(--white));align-items:center;justify-content:center;text-align:center;}
+.sc-sky{position:absolute;top:0;left:0;right:0;height:260px;overflow:hidden;pointer-events:none;}
+.sc-cloud{position:absolute;background:#fff;border-radius:50%;opacity:.5;animation:cloudFloat linear infinite;}
+@keyframes cloudFloat{0%{transform:translateX(-80px);}100%{transform:translateX(420px);}}
+.sc-breathe-circle{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,var(--mint-light),var(--mint));display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 8px 32px rgba(125,203,168,.25);animation:scPulse 6s ease-in-out infinite;}
+@keyframes scPulse{0%,100%{transform:scale(1);box-shadow:0 8px 32px rgba(125,203,168,.25);}50%{transform:scale(1.12);box-shadow:0 12px 48px rgba(125,203,168,.4);}}
+.sc-text{font-size:22px;font-weight:700;color:var(--blue-dark);}
+.sc-steps{display:flex;flex-direction:column;gap:10px;width:100%;padding:0 20px;}
+.sc-step{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.8);border-radius:16px;padding:12px 16px;box-shadow:0 2px 10px var(--shadow);opacity:0;transform:translateY(10px);transition:all .5s;}
+.sc-step.visible{opacity:1;transform:translateY(0);}
+.sc-step .sc-icon{font-size:28px;flex-shrink:0;}
+.sc-step .sc-msg{font-size:14px;line-height:1.5;text-align:left;}
+.sc-timer{font-size:13px;color:var(--text-light);font-weight:600;}
+
+/* GAME SELECT */
+#game-select{background:linear-gradient(180deg,var(--mint) 0%,var(--white) 30%);}
+.game-menu{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;}
+.game-menu-card{background:var(--white);border-radius:var(--radius);padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:0 4px 16px var(--shadow);transition:.3s;border:3px solid transparent;min-height:120px;justify-content:center;}
+.game-menu-card:active{transform:scale(.95);}
+.game-menu-card .gmc-icon{font-size:40px;}
+.game-menu-card .gmc-name{font-size:14px;font-weight:700;text-align:center;}
+.game-menu-card .gmc-desc{font-size:10px;color:var(--text-light);text-align:center;}
+
+/* MEMORY */
+.memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;}
+.mem-card{aspect-ratio:1;background:var(--blue);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;transition:.4s;box-shadow:0 2px 10px var(--shadow);user-select:none;}
+.mem-card.flipped,.mem-card.matched{background:var(--white);border:2px solid var(--mint-dark);}
+.mem-card.matched{opacity:.6;cursor:default;}
+
+/* NUMBERS */
+.num-sequence{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.num-bubble{width:48px;height:48px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--white);box-shadow:0 2px 8px var(--shadow);}
+.num-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+.num-opt{aspect-ratio:1;background:var(--white);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px var(--shadow);transition:.3s;border:3px solid transparent;}
+.num-opt:active{transform:scale(.94);}
+.num-opt.correct{border-color:var(--mint-dark);background:var(--mint-light);}
+.num-opt.wrong{border-color:var(--peach);background:#FEF0EB;}
+
+/* TIC TAC TOE */
+.ttt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:240px;}
+.ttt-cell{aspect-ratio:1;background:var(--white);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px var(--shadow);transition:.3s;border:2px solid var(--beige);}
+.ttt-cell:active{transform:scale(.94);}
+.ttt-cell.win{background:var(--mint-light);border-color:var(--mint-dark);}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+<!-- LOGIN -->
+<div class="screen active" id="login">
+  <div class="login-box">
+    <div class="tea" style="font-size:64px;">🍵</div>
+    <div class="title" style="font-size:22px;">ZenPulse</div>
+    <div class="subtitle">Entra na tua conta</div>
+    <input type="text" id="loginNick" placeholder="👤 Nickname" autocomplete="off">
+    <input type="password" id="loginPass" placeholder="🔒 Password">
+    <div class="login-error" id="loginErr"></div>
+    <button class="btn btn-mint" style="width:100%;" onclick="doLogin()">Entrar ➜</button>
+    <details class="login-users">
+      <summary>Contas disponíveis</summary>
+      <table>
+        <tr><td>martim</td><td>1234</td><td>👦 Criança</td></tr>
+        <tr><td>maria</td><td>1234</td><td>👧 Criança</td></tr>
+        <tr><td>dra.anabela</td><td>admin</td><td>👩‍⚕️ Terapeuta</td></tr>
+      </table>
+    </details>
+  </div>
+</div>
+
+<!-- SPLASH -->
+<div class="screen" id="splash" onclick="loggedUser&&loggedUser.role==='therapist'?go('menu'):go('checkin');if(loggedUser&&loggedUser.role!=='therapist')initCheckin();">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+    <div class="tea" style="font-size:90px;">🍵</div>
+    <div class="logo">ZenPulse</div>
+    <div class="sub">Respira. Tenta. Cresce.</div>
+    <div class="tap">Toca para começar ☝️</div>
+  </div>
+</div>
+
+<!-- CHECK-IN DIÁRIO -->
+<div class="screen" id="checkin">
+  <div class="status-bar"><span>9:41</span><span>🔋 92%</span></div>
+  <div class="content" style="justify-content:center;">
+    <div class="tea tea-sm">🍵</div>
+    <div class="title">Como estás hoje? 💚</div>
+    <div class="bubble">Antes de começarmos, conta-me<br>como foi o teu dia!</div>
+    <div class="checkin-progress" id="ciProg"></div>
+    <div id="ciQuestions"></div>
+    <div class="checkin-result" id="ciResult">
+      <div class="cr-emoji" id="ciResEmoji">😊</div>
+      <div class="cr-title" id="ciResTitle">Estás bem!</div>
+      <div class="cr-desc" id="ciResDesc">...</div>
+    </div>
+    <button class="btn btn-mint" id="ciBtn" style="display:none;" onclick="finishCheckin()">Continuar ➜</button>
+  </div>
+</div>
+
+<!-- SOFT CALM (pós check-in negativo) -->
+<div class="screen" id="soft-calm">
+  <div class="sc-sky" id="scSky"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;z-index:1;">
+    <div class="sc-breathe-circle">🍵</div>
+    <div class="sc-text" id="scText">Vamos respirar um pouco…</div>
+    <div class="sc-steps" id="scSteps">
+      <div class="sc-step" id="scStep1"><div class="sc-icon">🌿</div><div class="sc-msg">Põe a mão na barriga.<br>Sente o ar a entrar devagar…</div></div>
+      <div class="sc-step" id="scStep2"><div class="sc-icon">💨</div><div class="sc-msg">Agora solta o ar bem devagarinho…<br>como se estivesses a soprar uma vela.</div></div>
+      <div class="sc-step" id="scStep3"><div class="sc-icon">🫂</div><div class="sc-msg">Muito bem. Não precisas de ter pressa.<br>O Doutor Chá está aqui contigo.</div></div>
+      <div class="sc-step" id="scStep4"><div class="sc-icon">💚</div><div class="sc-msg">Quando te sentires pronto,<br>toca no botão em baixo. Sem pressa. 🌟</div></div>
+    </div>
+    <div class="sc-timer" id="scTimer"></div>
+    <button class="btn btn-mint" id="scBtn" style="display:none;" onclick="go('menu')">Estou pronto 💚</button>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="screen" id="menu">
+  <div class="status-bar"><span>9:41</span><span>🔋 92%</span></div>
+  <div class="content" style="justify-content:center;">
+    <div class="tea">🍵</div>
+    <div class="title">Olá, Martim! 👋</div>
+    <div class="bubble">Eu sou o <strong>Doutor Chá</strong>!<br>Vou ajudar-te a ficar calmo<br>e a tentar outra vez. 💚</div>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%;margin-top:8px;">
+      <button class="btn btn-mint" onclick="go('calibration')">📖 Começar História</button>
+      <button class="btn btn-blue" onclick="go('game-select')">🎮 Jogos</button>
+      <button class="btn btn-yellow" onclick="go('sensor')">⌚ Sensor</button>
+      <button class="btn btn-peach" onclick="go('profile')">👤 Perfil</button>
+      <button class="btn btn-yellow" onclick="go('shop')" style="background:linear-gradient(135deg,var(--yellow),var(--peach));">🎁 Prémios & Loja</button>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="on" onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- CALIBRAÇÃO 60s (H.2 Etapa 1) -->
+<div class="screen" id="calibration">
+  <div class="status-bar"><span>9:41</span><span>🔋 92%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content" style="justify-content:center;">
+    <div class="tea tea-sm">🍵</div>
+    <div class="title">Vamos preparar-nos!</div>
+    <div class="bubble">Fica quietinho durante uns segundos…<br>Estou a conhecer o teu coração. 💓</div>
+    <div class="calib-circle">
+      <div class="calib-ring" id="calibRing"></div>
+      <div class="bpm" id="calibBpm">--</div>
+      <div class="bpm-label">BPM</div>
+    </div>
+    <div class="calib-bar"><div class="calib-bar-fill" id="calibBar"></div></div>
+    <div class="subtitle" id="calibStatus">A calibrar… <span id="calibTimer">10</span>s</div>
+    <div class="calib-values">
+      <div class="calib-val"><div class="cv-label">GSR Baseline</div><div class="cv-num" id="calibGsr">--</div></div>
+      <div class="calib-val"><div class="cv-label">BPM Baseline</div><div class="cv-num" id="calibBpmVal">--</div></div>
+    </div>
+    <button class="btn btn-mint" id="calibBtn" style="display:none;" onclick="go('story');initStory();">✅ Pronto! Começar</button>
+  </div>
+</div>
+
+<!-- HISTÓRIA 7 CENAS (RF1) -->
+<div class="screen" id="story">
+  <div class="status-bar"><span>9:42</span><span>🔋 91%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="stress-hud" id="storyHud">
+      <span>😊</span>
+      <div class="bar"><div class="bar-fill" id="storyStressBar" style="width:15%;"></div></div>
+      <span id="storyStressEmoji">😊</span>
+      <div class="bpm-badge">💓 <span id="storyBpm">72</span></div>
+    </div>
+    <div class="story-illust" id="sIllust">🧸🎮</div>
+    <div class="dots" id="sDots"></div>
+    <div class="bubble" id="sBubble">...</div>
+    <div class="tea tea-sm">🍵</div>
+    <div style="font-size:15px;text-align:center;line-height:1.6;min-height:48px;" id="sTea">...</div>
+    <button class="btn btn-yellow" id="sBtn" onclick="nextScene()">Continuar ➜</button>
+  </div>
+</div>
+
+<!-- MINI-JOGO EMOÇÕES (RF9) -->
+<div class="screen" id="game">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <div class="content">
+    <div class="stress-hud">
+      <span>😊</span>
+      <div class="bar"><div class="bar-fill" id="gameStressBar" style="width:15%;"></div></div>
+      <span id="gameStressEmoji">😊</span>
+      <div class="bpm-badge">💓 <span id="gameBpm">72</span></div>
+    </div>
+    <div class="tea tea-sm">🍵</div>
+    <div class="title" id="gamePrompt" style="font-size:18px;">Qual é a emoção: 😢?</div>
+    <div class="game-grid" id="gameGrid"></div>
+    <div style="min-height:50px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;padding:0 12px;" id="gameFb"></div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button class="on"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- SELEÇÃO DE JOGOS -->
+<div class="screen" id="game-select">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="tea tea-sm" style="margin-top:30px;">🍵</div>
+    <div class="title">🎮 Escolhe um Jogo!</div>
+    <div class="bubble">O que te apetece jogar hoje?</div>
+    <div class="game-menu">
+      <div class="game-menu-card" onclick="startGame()">
+        <div class="gmc-icon">😊</div>
+        <div class="gmc-name">Emoções</div>
+        <div class="gmc-desc">Identifica a emoção correta</div>
+      </div>
+      <div class="game-menu-card" onclick="startMemory()">
+        <div class="gmc-icon">🧩</div>
+        <div class="gmc-name">Memória</div>
+        <div class="gmc-desc">Encontra os pares iguais</div>
+      </div>
+      <div class="game-menu-card" onclick="startNumbers()">
+        <div class="gmc-icon">🔢</div>
+        <div class="gmc-name">Números</div>
+        <div class="gmc-desc">Qual é o número seguinte?</div>
+      </div>
+      <div class="game-menu-card" onclick="startTTT()">
+        <div class="gmc-icon">❌⭕</div>
+        <div class="gmc-name">Jogo do Galo</div>
+        <div class="gmc-desc">3 em linha para ganhar!</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button class="on"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- JOGO MEMÓRIA -->
+<div class="screen" id="game-memory">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <div class="content">
+    <div class="stress-hud">
+      <span>😊</span>
+      <div class="bar"><div class="bar-fill" id="memStressBar" style="width:15%;"></div></div>
+      <span id="memStressEmoji">😊</span>
+      <div class="bpm-badge">💓 <span id="memBpm">72</span></div>
+    </div>
+    <div class="tea tea-sm">🍵</div>
+    <div class="title" style="font-size:18px;">🧩 Encontra os Pares!</div>
+    <div style="font-size:13px;color:var(--text-light);">Pares: <span id="memPairs">0</span>/6 • Tentativas: <span id="memTries">0</span></div>
+    <div class="memory-grid" id="memGrid"></div>
+    <div style="min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;" id="memFb"></div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('game-select')"><span class="ni">←</span>Voltar</button>
+    <button class="on"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- JOGO NÚMEROS -->
+<div class="screen" id="game-numbers">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <div class="content">
+    <div class="stress-hud">
+      <span>😊</span>
+      <div class="bar"><div class="bar-fill" id="numStressBar" style="width:15%;"></div></div>
+      <span id="numStressEmoji">😊</span>
+      <div class="bpm-badge">💓 <span id="numBpm">72</span></div>
+    </div>
+    <div class="tea tea-sm">🍵</div>
+    <div class="title" style="font-size:18px;">🔢 Qual é o próximo?</div>
+    <div class="subtitle">Ronda <span id="numRound">1</span>/5</div>
+    <div class="num-sequence" id="numSeq"></div>
+    <div class="num-options" id="numOpts"></div>
+    <div style="min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;" id="numFb"></div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('game-select')"><span class="ni">←</span>Voltar</button>
+    <button class="on"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- JOGO DO GALO -->
+<div class="screen" id="game-ttt">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <div class="content" style="justify-content:center;">
+    <div class="stress-hud">
+      <span>😊</span>
+      <div class="bar"><div class="bar-fill" id="tttStressBar" style="width:15%;"></div></div>
+      <span id="tttStressEmoji">😊</span>
+      <div class="bpm-badge">💓 <span id="tttBpm">72</span></div>
+    </div>
+    <div class="tea tea-sm">🍵</div>
+    <div class="title" style="font-size:18px;">❌⭕ Jogo do Galo</div>
+    <div class="subtitle" id="tttStatus">Tu: ❌ • Doutor Chá: ⭕</div>
+    <div class="ttt-grid" id="tttGrid"></div>
+    <div style="min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;" id="tttFb"></div>
+    <button class="btn btn-blue" style="font-size:14px;padding:10px 24px;min-width:auto;" onclick="startTTT()">🔄 Recomeçar</button>
+  </div>
+  <nav class="nav">
+    <button onclick="go('game-select')"><span class="ni">←</span>Voltar</button>
+    <button class="on"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- SENSOR IoT -->
+<div class="screen" id="sensor">
+  <div class="status-bar"><span>9:43</span><span>🔋 90%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="title" style="margin-top:36px;">⌚ Sensor BITalino</div>
+    <div class="iot-device">
+      <div class="iot-ring" id="iotRing"></div>
+      <div class="bracelet">⌚</div>
+    </div>
+    <div style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;">
+      <span id="sensorEmoji">😊</span><span id="sensorLabel">Calmo</span>
+    </div>
+    <div class="stress-meter">
+      <div class="meter-bar"><div class="meter-fill" id="sensorFill"></div></div>
+      <div class="meter-labels"><span>Calmo</span><span>Médio</span><span>Stress</span></div>
+    </div>
+    <div class="live-data">
+      <div class="ld"><div class="ld-val" id="ldGsr">2.1</div><div class="ld-lbl">GSR (µS)</div></div>
+      <div class="ld"><div class="ld-val" id="ldBpm">72</div><div class="ld-lbl">BPM</div></div>
+      <div class="ld"><div class="ld-val" id="ldSi">0.95</div><div class="ld-lbl">Stress Index</div></div>
+    </div>
+    <div class="bubble" id="sensorBubble">O teu sensor mostra que estás <strong>calmo</strong>. 💚 Muito bem!</div>
+    <button class="btn btn-peach" onclick="simulateStress()">⚡ Simular Stress</button>
+    <div class="iot-tag"><span>📡</span>BITalino (r)evolution • BLE • GSR + ECG/BPM</div>
+    <div class="iot-tag"><span>🔋</span>LiPo 3.7V 700mAh • ~8h autonomia</div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button class="on"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- CALM CHOICE (RF3) -->
+<div class="screen" id="calm-choice">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;flex:1;">
+    <div class="tea">🍵</div>
+    <div class="title">Pausa Automática ⏸️</div>
+    <div class="bubble">Detetei que estás nervoso.<br>Vamos acalmar juntos!<br>O que preferes?</div>
+    <div class="choice-btns">
+      <button class="btn btn-blue" onclick="go('calm-breathe');startBreathing();">🔺 Respiração Triângulo 4-4-4</button>
+      <button class="btn btn-mint" onclick="go('calm-tickle');startTickle();">📳 Modo Cócegas / Ronrom</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALM: RESPIRAÇÃO TRIÂNGULO 4-4-4 (RF4) -->
+<div class="screen" id="calm-breathe">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;flex:1;">
+    <div class="tea tea-sm">🍵</div>
+    <div class="breath-text">Respira comigo 🔺</div>
+    <div class="triangle-container">
+      <svg class="triangle-svg" viewBox="0 0 200 180">
+        <path class="triangle-path" id="triPath" d="M100,15 L185,165 L15,165 Z"/>
+      </svg>
+    </div>
+    <div class="breath-phase" id="breathPhase">Inspira… 4s</div>
+    <div class="breath-progress" id="breathProg"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="bubble">Inspira… Segura… Expira…<br>Triângulo 4-4-4 🔺</div>
+    <div class="haptic-badge">📳 Vibração suave ativa</div>
+  </div>
+</div>
+
+<!-- CALM: MODO CÓCEGAS/RONROM (RF5) -->
+<div class="screen" id="calm-tickle">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;flex:1;">
+    <div class="tea tea-sm">🍵</div>
+    <div class="breath-text">Modo Ronrom 🐱</div>
+    <div class="purr-circle animating">🐱</div>
+    <div class="vibration-waves"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="breath-phase" id="ticklePhase">Vibração rítmica… 210 Hz</div>
+    <div class="breath-progress" id="tickleProg"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="bubble">A pulseira está a vibrar suavemente.<br>Como um gatinho a ronronar. 🐱💤</div>
+    <div class="haptic-badge">📳 3 vibrações × 700ms + pausa</div>
+    <div class="subtitle">Padrão: Santamarina-Siurana et al. (2022)</div>
+  </div>
+</div>
+
+<!-- REWARD -->
+<div class="screen" id="reward">
+  <div class="confetti" id="confetti"></div>
+  <div class="content" style="justify-content:center;">
+    <div class="tea tea-sm">🍵</div>
+    <div class="badge">🏅</div>
+    <div class="stars">⭐⭐⭐</div>
+    <div class="title">Muito bem!<br>Tentaste outra vez! 💚</div>
+    <div class="subtitle" style="line-height:1.6;">Tu acalmaste-te e voltaste a tentar.<br>Isso é ser um verdadeiro herói! 🦸</div>
+    <div class="reward-stats">
+      <div class="card"><div class="icon">🧘</div><div class="info"><div class="label">Acalmaste-te</div><div class="value" id="rwCalm">1×</div></div></div>
+      <div class="card"><div class="icon">🔄</div><div class="info"><div class="label">Tentaste outra vez</div><div class="value" id="rwRetry">1×</div></div></div>
+    </div>
+    <div class="bubble">Estou muito orgulhoso de ti!<br>— Doutor Chá 🍵</div>
+    <button class="btn btn-mint" onclick="go('game-select')">🎮 Jogar outra vez</button>
+    <button class="btn btn-blue" onclick="go('profile')">👤 Meu Perfil</button>
+    <button class="btn btn-yellow" onclick="go('menu')">🏠 Menu</button>
+  </div>
+</div>
+
+<!-- PERFIL (RF10) -->
+<div class="screen" id="profile">
+  <div class="status-bar"><span>9:44</span><span>🔋 89%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="avatar-ring" style="margin-top:32px;">🧒</div>
+    <div class="title">Martim</div>
+    <div class="subtitle">Nível 3 — Explorador Calmo 🌟</div>
+    <div style="width:100%;text-align:center;">
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">Progresso para Nível 4</div>
+      <div class="level-bar"><div class="level-fill" style="width:65%;"></div></div>
+    </div>
+    <div style="font-size:14px;font-weight:600;">🏆 Conquistas</div>
+    <div class="achievements">
+      <div class="ach"><div class="ach-icon">🌟</div>1ª Sessão</div>
+      <div class="ach"><div class="ach-icon">🧘</div>1ª Calma</div>
+      <div class="ach"><div class="ach-icon">🔄</div>3 Retries</div>
+      <div class="ach"><div class="ach-icon">💪</div>5 Sessões</div>
+      <div class="ach"><div class="ach-icon">🎯</div>10 Acertos</div>
+      <div class="ach locked"><div class="ach-icon">🏅</div>10 Sessões</div>
+      <div class="ach locked"><div class="ach-icon">🦸</div>Herói Zen</div>
+      <div class="ach locked"><div class="ach-icon">👑</div>Mestre</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;">📅 Últimas Sessões</div>
+    <div class="session-list">
+      <div class="session-item"><div class="s-info"><strong>Hoje</strong><div class="s-date">2 pausas • Método: Respiração</div></div><div class="s-stars">⭐⭐⭐</div></div>
+      <div class="session-item"><div class="s-info"><strong>Ontem</strong><div class="s-date">1 pausa • Método: Ronrom</div></div><div class="s-stars">⭐⭐</div></div>
+      <div class="session-item"><div class="s-info"><strong>15 Abr</strong><div class="s-date">3 pausas • Método: Respiração</div></div><div class="s-stars">⭐⭐⭐</div></div>
+    </div>
+    <div class="card" style="width:100%;"><div class="icon">📊</div><div class="info"><div class="label">Total de sessões completadas</div><div class="value">7</div></div></div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- PROGRESSO -->
+<div class="screen" id="progress">
+  <div class="status-bar"><span>9:44</span><span>🔋 89%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="title" style="margin-top:36px;">⭐ Meu Progresso</div>
+    <div class="tea tea-sm">🍵</div>
+    <div class="card" style="width:100%;"><div class="icon">🧘</div><div class="info"><div class="label">Hoje acalmaste-te</div><div class="value" id="pCalm">0 vezes</div></div></div>
+    <div class="card" style="width:100%;"><div class="icon">🔄</div><div class="info"><div class="label">Tentaste outra vez</div><div class="value" id="pRetry">0 vezes</div></div></div>
+    <div class="card" style="width:100%;"><div class="icon">🏅</div><div class="info"><div class="label">Medalhas ganhas</div><div class="value" id="pBadge">0</div></div></div>
+    <div class="card" style="width:100%;"><div class="icon">📉</div><div class="info"><div class="label">BPM médio hoje</div><div class="value" id="pAvgBpm">72</div></div></div>
+    <div class="cal-card">
+      <h4>📅 Calendário de Humor</h4>
+      <div class="cal-header">
+        <button onclick="calNav(-1)">◀</button>
+        <div class="cal-month" id="calMonth">Abril 2026</div>
+        <button onclick="calNav(1)">▶</button>
+      </div>
+      <div class="cal-weekdays"><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-scale">
+        <div class="cs-lbl">0 Calmo</div>
+        <div class="cs-bar"></div>
+        <div class="cs-lbl">10 Irritado</div>
+      </div>
+      <div class="cal-legend">
+        <span><div class="cl-box" style="background:var(--mint);"></div>0-3 Calmo</span>
+        <span><div class="cl-box" style="background:var(--yellow);"></div>4-6 Médio</span>
+        <span><div class="cl-box" style="background:var(--peach-dark);"></div>7-10 Irritado</span>
+      </div>
+    </div>
+
+    <div class="community-card">
+      <h4>🌍 Missão Comunitária</h4>
+      <div style="font-size:13px;margin-bottom:6px;">Juntos vamos desbloquear:<br><strong>🏕️ Aventura na Floresta Mágica</strong></div>
+      <div class="comm-bar"><div class="comm-fill" id="commFill" style="width:68%;">68%</div></div>
+      <div class="comm-avatars">
+        <span>🧒</span><span>👧</span><span>👦</span><span>👶</span><span>🧒</span><span>👧</span>
+      </div>
+      <div class="comm-goal">136 / 200 momentos de calma coletivos ✨</div>
+      <div class="comm-sub">Cada vez que alguém se acalma, o grupo avança!</div>
+    </div>
+    <div class="bubble">Não é uma competição — é uma equipa! 💚<br>Juntos somos mais fortes. 🤝</div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button class="on"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- DASHBOARD TERAPEUTA (RF8) -->
+<div class="screen" id="dashboard">
+  <div class="status-bar"><span>9:45</span><span>🔋 88%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="title" style="margin-top:36px;">📊 Dashboard Clínico</div>
+    <div class="lock-row">🔒 Acesso autenticado: Dra. Anabela Filipa</div>
+    <div class="dash-header">
+      <div class="patient-av">🧒</div>
+      <div><strong>Martim, 8 anos</strong><br><span style="font-size:12px;color:var(--text-light);">PEA Nível 1 • 7 sessões</span></div>
+    </div>
+    <div class="chart-card">
+      <h4>💓 BPM Médio por Sessão (semana)</h4>
+      <div class="bar-chart" id="bpmChart"></div>
+    </div>
+    <div class="chart-card">
+      <h4>⏸️ Nº de Pausas por Sessão</h4>
+      <div class="bar-chart" id="pauseChart"></div>
+    </div>
+    <div class="dash-metrics">
+      <div class="dash-metric"><div class="dm-val">72</div><div class="dm-lbl">BPM médio global</div></div>
+      <div class="dash-metric"><div class="dm-val">2.1</div><div class="dm-lbl">Pausas/sessão</div></div>
+      <div class="dash-metric"><div class="dm-val">18s</div><div class="dm-lbl">Tempo recuperação</div></div>
+      <div class="dash-metric"><div class="dm-val">1.12</div><div class="dm-lbl">Stress Index médio</div></div>
+    </div>
+    <div class="calm-pref">
+      <h4>🧘 Método de Calma Preferido</h4>
+      <div class="pref-bar">
+        <div class="pb-label">🔺 Respiração</div>
+        <div class="pb-track"><div class="pb-fill" style="width:65%;background:var(--blue-dark);"></div></div>
+        <span style="font-size:12px;">65%</span>
+      </div>
+      <div class="pref-bar">
+        <div class="pb-label">🐱 Ronrom</div>
+        <div class="pb-track"><div class="pb-fill" style="width:35%;background:var(--mint-dark);"></div></div>
+        <span style="font-size:12px;">35%</span>
+      </div>
+    </div>
+    <div class="chart-card" style="font-size:12px;color:var(--text-light);line-height:1.8;">
+      <h4>📐 Algoritmo de Deteção (H.2)</h4>
+      <strong>Stress_Index</strong> = (GSR_atual / GSR_baseline) × (BPM_atual / BPM_baseline)<br>
+      <strong>Limiar ativação:</strong> Stress_Index &gt; 1.45 durante &gt; 2s<br>
+      <strong>Limiar retoma:</strong> Stress_Index &lt; 1.1<br>
+      <strong>Calibração:</strong> 60s baseline individual por sessão<br>
+      <strong>Filtro:</strong> Média móvel janela 3s
+    </div>
+    <!-- 1. ALGORITMO ADAPTATIVO -->
+    <div class="threshold-card">
+      <h4>🧠 Limiar Adaptativo (Context-Aware)</h4>
+      <div class="th-formula">
+        <strong>Limiar_Efetivo</strong> = Limiar_Base × Fator_CheckIn<br>
+        Limiar_Base = 1.45<br>
+        <span id="thCheckinInfo">Check-in: Ótimo (100%) → Fator = 1.00</span><br>
+        <strong id="thResult">Limiar_Efetivo = 1.45</strong>
+      </div>
+      <div class="th-indicator">
+        <span style="font-size:11px;">1.00</span>
+        <div class="th-bar">
+          <div class="th-fill" id="thFill" style="width:75%;background:linear-gradient(90deg,var(--mint),var(--yellow),var(--peach-dark));"></div>
+          <div class="th-marker" id="thMarker" style="left:72%;"></div>
+        </div>
+        <div class="th-val" id="thVal">1.45</div>
+      </div>
+      <div id="thTags">
+        <span class="th-tag" style="background:var(--mint);">😴 Dormiu bem → +0%</span>
+        <span class="th-tag" style="background:var(--mint);">😊 Sente-se bem → +0%</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:8px;line-height:1.6;">
+        📐 <strong>Lógica:</strong> Se a criança reportou sono mau, mágoa ou nervosismo, o limiar desce para detetar stress mais cedo e proteger o utilizador.
+      </div>
+    </div>
+
+    <!-- 2. HAPTIC CLOSED-LOOP -->
+    <div class="haptic-sync">
+      <h4>📳 Feedback Háptico Closed-Loop</h4>
+      <div class="hs-visual">
+        <div class="hs-heart" id="hsHeart">💓</div>
+        <div class="hs-wave" id="hsWave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="hs-metrics">
+        <div class="hs-metric"><div class="hm-val" id="hsBpm">72</div><div class="hm-lbl">BPM Atual</div></div>
+        <div class="hs-metric"><div class="hm-val" id="hsFreq">210</div><div class="hm-lbl">Hz Vibração</div></div>
+        <div class="hs-metric"><div class="hm-val" id="hsSync">Sync</div><div class="hm-lbl">Estado</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.6;">
+        📐 <strong>Algoritmo:</strong> freq_vibração = 210 - ((BPM_atual - BPM_baseline) × 2.5)<br>
+        A vibração abranda à medida que o BPM desce, criando <strong>ressonância tátil</strong> que induz calma por biofeedback.<br>
+        <em>Ref: Santamarina-Siurana et al. (2022)</em>
+      </div>
+      <button class="btn btn-blue" style="margin-top:10px;font-size:14px;min-width:auto;padding:10px 20px;" onclick="demoHapticSync()">▶ Demo Closed-Loop</button>
+    </div>
+
+    <!-- 3. HOTSPOTS DE FRUSTRAÇÃO -->
+    <div class="hotspot-card">
+      <h4>🔥 Hotspots de Frustração por Cena</h4>
+      <div class="hotspot-timeline" id="hotspotTimeline"></div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.6;">
+        🎯 <strong>Insight Clínico:</strong> A Cena 4 (Derrota) e Cena 3 (Perda) são os picos sistemáticos de frustração. Sugerido: reforço preventivo antes destas cenas ou adaptação narrativa.<br>
+        <em>⚠️ Os dados são cruzados automaticamente com o Stress_Index do BITalino em tempo real.</em>
+      </div>
+    </div>
+
+    <div class="iot-tag" style="cursor:pointer;">📋 Exportar relatório PDF</div>
+    <div class="lock-row">🔐 Dados locais • RGPD compliant • RNF5</div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button onclick="go('sensor')"><span class="ni">⌚</span>Sensor</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button class="on"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- LOJA DE PRÉMIOS -->
+<div class="screen" id="shop">
+  <div class="status-bar"><span>9:45</span><span>🔋 87%</span></div>
+  <button class="back" onclick="go('menu')">←</button>
+  <div class="content">
+    <div class="title" style="margin-top:36px;">🎁 Loja de Prémios</div>
+    <div class="points-banner">
+      <div><div class="pb-pts" id="shopPts">0 ⭐</div><div class="pb-lbl">As tuas estrelas</div></div>
+      <div class="tea tea-sm" style="animation-duration:2s;">🍵</div>
+    </div>
+    <div class="zencoin-banner">
+      <div><div class="zc-pts" id="zcPts">💎 0 ZenCoins</div><div class="zc-sub">Moeda de troca por prémios reais</div></div>
+      <div style="font-size:28px;">💎</div>
+    </div>
+    <div class="zc-convert">
+      <span>10 ⭐</span><span class="zc-arrow">→</span><span>1 💎 ZenCoin</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-light);">Taxa fixa</span>
+    </div>
+    <button class="btn btn-blue" style="font-size:14px;padding:12px 24px;min-width:auto;" onclick="convertToZenCoins()">🔄 Converter Estrelas → ZenCoins</button>
+    <div class="parent-lock">
+      <h4>🔐 Validação dos Pais</h4>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">PIN parental obrigatório para resgatar prémios reais</div>
+      <div class="pin-input">
+        <input type="password" maxlength="1" id="pin1" oninput="pinNext(1)">
+        <input type="password" maxlength="1" id="pin2" oninput="pinNext(2)">
+        <input type="password" maxlength="1" id="pin3" oninput="pinNext(3)">
+        <input type="password" maxlength="1" id="pin4" oninput="pinNext(4)">
+      </div>
+      <div class="login-error" id="pinErr"></div>
+      <div style="font-size:10px;color:var(--text-light);">PIN demo: 0000 • Evita compras sem supervisão</div>
+    </div>
+
+    <div class="partner-section">
+      <h3>🏥 Saúde & Bem-estar</h3>
+      <div class="prize-grid" id="prizesHealth"></div>
+    </div>
+    <div class="partner-section">
+      <h3>🎮 Diversão & Entretenimento</h3>
+      <div class="prize-grid" id="prizesFun"></div>
+    </div>
+    <div class="partner-section">
+      <h3>📚 Educação</h3>
+      <div class="prize-grid" id="prizesEdu"></div>
+    </div>
+
+    <div class="points-how">
+      <h4>💡 Como ganhar estrelas?</h4>
+      <div class="points-row"><span class="pr-pts">+5 ⭐</span> Completar uma história</div>
+      <div class="points-row"><span class="pr-pts">+3 ⭐</span> Acertar no jogo de emoções</div>
+      <div class="points-row"><span class="pr-pts">+10 ⭐</span> Acalmar-se com sucesso</div>
+      <div class="points-row"><span class="pr-pts">+2 ⭐</span> Sessão diária completada</div>
+      <div class="points-row"><span class="pr-pts">+15 ⭐</span> Medalha desbloqueada</div>
+    </div>
+    <div class="bubble">Cada vez que te acalmas e tentas outra vez,<br>ganhas estrelas! Troca-as por prémios! 🌟</div>
+  </div>
+  <nav class="nav">
+    <button onclick="go('menu')"><span class="ni">🏠</span>Início</button>
+    <button onclick="go('game-select')"><span class="ni">🎮</span>Jogar</button>
+    <button class="on" onclick="go('shop')"><span class="ni">🎁</span>Loja</button>
+    <button onclick="go('progress')"><span class="ni">⭐</span>Progresso</button>
+    <button onclick="go('dashboard')"><span class="ni">📊</span>Dashboard</button>
+  </nav>
+</div>
+
+<!-- MODAL TROCA -->
+<div class="modal-bg" id="shopModal">
+  <div class="modal-box">
+    <div style="font-size:56px;" id="modalIcon">🎁</div>
+    <div class="title" style="font-size:18px;" id="modalTitle">Trocar prémio?</div>
+    <div class="subtitle" id="modalDesc">...</div>
+    <div style="font-size:22px;font-weight:800;" id="modalCost">-20 ⭐</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-mint" onclick="confirmRedeem()">✅ Trocar</button>
+      <button class="btn" style="background:var(--beige);" onclick="closeModal()">Cancelar</button>
+    </div>
+    <div class="login-error" id="modalErr"></div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay">
+  <div class="tea" style="font-size:56px;">🍵</div>
+  <div class="omsg" id="oMsg">A preparar…</div>
+</div>
+
+</div>
+
+<script>
+const users=[
+  {nick:'martim',pass:'1234',name:'Martim',role:'child',emoji:'🧒'},
+  {nick:'maria',pass:'1234',name:'Maria',role:'child',emoji:'👧'},
+  {nick:'dra.anabela',pass:'admin',name:'Dra. Anabela Filipa',role:'therapist',emoji:'👩‍⚕️'},
+];
+let loggedUser=null;
+function doLogin(){
+  const n=document.getElementById('loginNick').value.trim().toLowerCase();
+  const p=document.getElementById('loginPass').value;
+  const u=users.find(u=>u.nick===n&&u.pass===p);
+  if(!u){document.getElementById('loginErr').textContent='❌ Nickname ou password incorretos';return;}
+  loggedUser=u;
+  document.getElementById('loginErr').textContent='';
+  // Update UI with user info
+  document.querySelector('#menu .title').textContent='Olá, '+u.name+'! 👋';
+  document.querySelector('.avatar-ring').textContent=u.emoji;
+  document.querySelector('#profile .title').textContent=u.name;
+  if(u.role==='therapist'){
+    document.querySelector('#dashboard .lock-row').textContent='🔒 Acesso autenticado: '+u.name;
+  }
+  go('splash');
+}
+// Enter key support
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&currentScreen==='login')doLogin();});
+
+let stats={calmed:0,retried:0,badges:0};
+let playerPoints=45; // start with some points for demo
+let redeemedPrizes=[];
+let pendingPrize=null;
+
+const prizes=[
+  {id:1,cat:'health',icon:'🧸',name:'Peluche Terapêutico',partner:'IKEA Portugal',desc:'Um peluche suave para abraçar nos momentos difíceis',cost:30},
+  {id:2,cat:'health',icon:'🎧',name:'Auscultadores Anti-ruído Kids',partner:'Continente',desc:'Para quando o mundo está barulhento demais',cost:80},
+  {id:3,cat:'health',icon:'🧴',name:'Kit Sensorial',partner:'Farmácia ZenKids',desc:'Bola anti-stress + slime + fidget spinner',cost:25},
+  {id:4,cat:'fun',icon:'🎬',name:'Bilhete de Cinema',partner:'NOS Cinemas',desc:'1 sessão + pipocas para ti e um amigo',cost:40},
+  {id:5,cat:'fun',icon:'🎮',name:'1 Mês Xbox Game Pass',partner:'Microsoft',desc:'Acesso a centenas de jogos durante 30 dias',cost:60},
+  {id:6,cat:'fun',icon:'🎨',name:'Kit de Pintura',partner:'FNAC',desc:'Tintas, pincéis e tela para criar arte',cost:20},
+  {id:7,cat:'fun',icon:'🎢',name:'Entrada Parque Diversões',partner:'Parque dos Sonhos',desc:'Um dia inteiro de diversão!',cost:100},
+  {id:8,cat:'edu',icon:'📖',name:'Livro Interativo',partner:'Bertrand Livreiros',desc:'Livro sobre emoções com atividades',cost:15},
+  {id:9,cat:'edu',icon:'🧩',name:'Puzzle 100 Peças',partner:'Toys R Us',desc:'Puzzle temático do ZenPulse',cost:20},
+  {id:10,cat:'edu',icon:'🔬',name:'Kit Ciência Divertida',partner:'Science4you',desc:'Experiências científicas em casa',cost:50},
+];
+
+function renderShop(){
+  document.getElementById('shopPts').textContent=playerPoints+' ⭐';
+  updateZenCoins();
+  const cats={health:'prizesHealth',fun:'prizesFun',edu:'prizesEdu'};
+  Object.entries(cats).forEach(([cat,elId])=>{
+    const el=document.getElementById(elId);
+    el.innerHTML=prizes.filter(p=>p.cat===cat).map(p=>{
+      const got=redeemedPrizes.includes(p.id);
+      const canBuy=playerPoints>=p.cost&&!got;
+      return `<div class="prize-card ${got?'redeemed':''}" onclick="${got?'':'tryRedeem('+p.id+')'}">
+        <div class="prize-icon">${p.icon}</div>
+        <div class="prize-info"><div class="prize-name">${p.name}</div><div class="prize-partner">${p.partner}</div><div class="prize-desc">${p.desc}</div></div>
+        <div class="prize-cost ${canBuy?'affordable':''} ${got?'got':''}">${got?'✅ Resgatado':p.cost+' ⭐'}</div>
+      </div>`;
+    }).join('');
+  });
+}
+function tryRedeem(id){
+  pendingPrize=prizes.find(p=>p.id===id);
+  if(!pendingPrize)return;
+  document.getElementById('modalIcon').textContent=pendingPrize.icon;
+  document.getElementById('modalTitle').textContent='Trocar por '+pendingPrize.name+'?';
+  document.getElementById('modalDesc').textContent=pendingPrize.partner+' — '+pendingPrize.desc;
+  document.getElementById('modalCost').textContent='-'+pendingPrize.cost+' ⭐';
+  document.getElementById('modalErr').textContent='';
+  document.getElementById('shopModal').classList.add('show');
+}
+function confirmRedeem(){
+  if(!pendingPrize)return;
+  if(playerPoints<pendingPrize.cost){document.getElementById('modalErr').textContent='⭐ Não tens estrelas suficientes!';return;}
+  playerPoints-=pendingPrize.cost;
+  redeemedPrizes.push(pendingPrize.id);
+  closeModal();
+  renderShop();
+  showOverlay('🎉 Prémio resgatado!',()=>{});
+}
+function closeModal(){document.getElementById('shopModal').classList.remove('show');pendingPrize=null;}
+function addPoints(n){playerPoints+=n;}
+
+// CHECK-IN DIÁRIO
+const checkinQs=[
+  {emoji:'😴',text:'Dormiste bem esta noite?',positive:true},
+  {emoji:'😊',text:'Sentes-te bem hoje?',positive:true},
+  {emoji:'💔',text:'Aconteceu algo que te magoou?',positive:false},
+  {emoji:'😰',text:'Sentes-te nervoso ou preocupado?',positive:false},
+  {emoji:'👨‍👩‍👦',text:'Alguém te fez sentir feliz hoje?',positive:true},
+];
+let ciAnswers=[];
+let ciStep=0;
+
+function initCheckin(){
+  ciAnswers=[];ciStep=0;
+  const prog=document.getElementById('ciProg');
+  prog.innerHTML=checkinQs.map(()=>'<span></span>').join('');
+  document.getElementById('ciResult').style.display='none';
+  document.getElementById('ciBtn').style.display='none';
+  renderCheckinQ();
+}
+function renderCheckinQ(){
+  const cont=document.getElementById('ciQuestions');
+  if(ciStep>=checkinQs.length){evaluateCheckin();return;}
+  const q=checkinQs[ciStep];
+  cont.innerHTML=`<div class="checkin-q">
+    <div class="cq-emoji">${q.emoji}</div>
+    <div class="cq-text">${q.text}</div>
+    <div class="cq-btns">
+      <button class="cq-btn yes" onclick="answerCI(true)">Sim</button>
+      <button class="cq-btn no" onclick="answerCI(false)">Não</button>
+    </div>
+  </div>`;
+}
+function answerCI(val){
+  ciAnswers.push(val);
+  document.querySelectorAll('#ciProg span')[ciStep].classList.add('done');
+  ciStep++;
+  renderCheckinQ();
+}
+function evaluateCheckin(){
+  // Calculate wellbeing score: positive Qs = yes is good, negative Qs = no is good
+  let score=0;
+  checkinQs.forEach((q,i)=>{
+    const ans=ciAnswers[i];
+    if(q.positive&&ans)score++;
+    if(!q.positive&&!ans)score++;
+  });
+  const pct=Math.round((score/checkinQs.length)*100);
+  ciWellbeing=pct;
+  const res=document.getElementById('ciResult');
+  const emoji=document.getElementById('ciResEmoji');
+  const title=document.getElementById('ciResTitle');
+  const desc=document.getElementById('ciResDesc');
+  document.getElementById('ciQuestions').innerHTML='';
+  if(pct>=80){
+    emoji.textContent='🌟';title.textContent='Estás ótimo hoje!';
+    desc.textContent='Que bom! Estás com muita energia positiva. Vamos aproveitar e divertir-nos! O Doutor Chá está orgulhoso. 💚';
+  }else if(pct>=50){
+    emoji.textContent='😊';title.textContent='Estás bem, com calma!';
+    desc.textContent='O dia não foi perfeito, mas está tudo bem! Vamos fazer umas atividades giras para te sentires ainda melhor. 🍵';
+  }else{
+    emoji.textContent='🫂';title.textContent='Hoje é um dia mais difícil…';
+    desc.textContent='Não faz mal ter dias menos bons. Antes de começarmos, vamos respirar um bocadinho juntos. O Doutor Chá cuida de ti. 💚';
+  }
+  res.style.display='';
+  document.getElementById('ciBtn').style.display='';
+  addPoints(2);
+  updateAdaptiveThreshold();
+}
+let ciWellbeing=100;
+function finishCheckin(){
+  if(ciWellbeing<50){
+    go('soft-calm');
+    startSoftCalm();
+  } else {
+    go('menu');
+  }
+}
+
+function startSoftCalm(){
+  // Spawn clouds
+  const sky=document.getElementById('scSky');
+  sky.innerHTML='';
+  for(let i=0;i<5;i++){
+    const c=document.createElement('div');
+    c.className='sc-cloud';
+    const size=30+Math.random()*50;
+    c.style.width=size+'px';c.style.height=(size*.5)+'px';
+    c.style.top=(20+Math.random()*180)+'px';
+    c.style.animationDuration=(12+Math.random()*10)+'s';
+    c.style.animationDelay=(-Math.random()*15)+'s';
+    sky.appendChild(c);
+  }
+  // Reveal steps progressively
+  const steps=document.querySelectorAll('.sc-step');
+  steps.forEach(s=>s.classList.remove('visible'));
+  document.getElementById('scBtn').style.display='none';
+  document.getElementById('scTimer').textContent='';
+  const delays=[0,4000,8000,12000];
+  const msgs=['Inspira pelo nariz… 🌿','Expira pela boca… 💨','Estás a ir muito bem… 🫂','Quando quiseres, avança 💚'];
+  delays.forEach((d,i)=>{
+    setTimeout(()=>{
+      steps[i].classList.add('visible');
+      document.getElementById('scText').textContent=msgs[i];
+    },d);
+  });
+  // Show button after all steps
+  setTimeout(()=>{
+    document.getElementById('scBtn').style.display='';
+    document.getElementById('scTimer').textContent='Sem pressa — toca quando estiveres pronto';
+  },16000);
+}
+
+// CALENDÁRIO HUMOR
+const moodData={
+  '2026-04-01':2,'2026-04-02':3,'2026-04-03':5,'2026-04-04':4,'2026-04-05':2,
+  '2026-04-06':1,'2026-04-07':3,'2026-04-08':6,'2026-04-09':7,'2026-04-10':4,
+  '2026-04-11':3,'2026-04-12':2,'2026-04-13':1,'2026-04-14':5,'2026-04-15':8,
+  '2026-04-16':6,'2026-04-17':4,'2026-04-18':3,'2026-04-19':2,'2026-04-20':null,
+  '2026-03-20':5,'2026-03-21':6,'2026-03-22':3,'2026-03-23':2,'2026-03-24':4,
+  '2026-03-25':7,'2026-03-26':3,'2026-03-27':1,'2026-03-28':2,'2026-03-29':5,
+  '2026-03-30':4,'2026-03-31':3,
+};
+let calYear=2026,calMon=3; // 0-indexed: 3=April
+const monthNames=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function calNav(dir){calMon+=dir;if(calMon>11){calMon=0;calYear++;}if(calMon<0){calMon=11;calYear--;}renderCal();}
+function moodColor(v){if(v===null||v===undefined)return'var(--beige)';if(v<=3)return'var(--mint)';if(v<=6)return'var(--yellow)';return'var(--peach-dark)';}
+function renderCal(){
+  document.getElementById('calMonth').textContent=monthNames[calMon]+' '+calYear;
+  const first=new Date(calYear,calMon,1);
+  const days=new Date(calYear,calMon+1,0).getDate();
+  let startDay=(first.getDay()+6)%7; // Monday=0
+  const today=new Date();
+  const g=document.getElementById('calGrid');
+  let html='';
+  for(let i=0;i<startDay;i++)html+='<div class="cal-day empty"></div>';
+  for(let d=1;d<=days;d++){
+    const key=calYear+'-'+String(calMon+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const val=moodData[key];
+    const isToday=today.getFullYear()===calYear&&today.getMonth()===calMon&&today.getDate()===d;
+    const bg=val!==undefined&&val!==null?moodColor(val):'var(--beige)';
+    const title=val!==null&&val!==undefined?'Irritação: '+val+'/10':'';
+    html+='<div class="cal-day'+(isToday?' today':'')+'" style="background:'+bg+';" title="'+title+'"><span class="cd-num">'+d+'</span></div>';
+  }
+  g.innerHTML=html;
+}
+
+let stressLevel=0,wrongCount=0,currentScreen='login';
+let gsrBaseline=2.1,bpmBaseline=72;
+let breathInterval,tickleInterval;
+
+function go(id,msg){if(msg){showOverlay(msg,()=>switchTo(id));}else{switchTo(id);}}
+function switchTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen=id;
+  if(id==='calibration')startCalibration();
+  if(id==='reward')spawnConfetti();
+  if(id==='progress'){updateProgress();renderCal();}
+  if(id==='dashboard')buildCharts();
+  if(id==='shop')renderShop();
+}
+function showOverlay(msg,cb){
+  const o=document.getElementById('overlay');
+  document.getElementById('oMsg').textContent=msg;
+  o.classList.add('show');
+  setTimeout(()=>{o.classList.remove('show');cb();},1200);
+}
+
+// CALIBRATION
+function startCalibration(){
+  let t=10,gsr=1.8,bpm=68;
+  document.getElementById('calibBtn').style.display='none';
+  const iv=setInterval(()=>{
+    t--;gsr=+(1.8+Math.random()*.6).toFixed(1);bpm=Math.round(68+Math.random()*10);
+    document.getElementById('calibTimer').textContent=t;
+    document.getElementById('calibBar').style.width=((10-t)*10)+'%';
+    document.getElementById('calibBpm').textContent=bpm;
+    document.getElementById('calibGsr').textContent=gsr;
+    document.getElementById('calibBpmVal').textContent=bpm;
+    if(t<=0){clearInterval(iv);gsrBaseline=gsr;bpmBaseline=bpm;
+      document.getElementById('calibStatus').innerHTML='✅ Calibração completa!';
+      document.getElementById('calibBtn').style.display='';}
+  },1000);
+}
+
+// 7 SCENES
+const scenes=[
+  {ill:'🧸🎮',bubble:'O Martim estava a jogar um jogo com os amigos.<br>Estava muito contente! 😊',tea:'Jogar com amigos é muito divertido!',btn:'Continuar ➜'},
+  {ill:'🎲😐',bubble:'O jogo ficou mais difícil…<br>O Martim começou a ficar nervoso. 😟',tea:'Às vezes os jogos são difíceis.<br>Está tudo bem sentir isso.',btn:'Continuar ➜'},
+  {ill:'❌😢',bubble:'O Martim <strong>perdeu o jogo</strong>.<br>Sentiu uma tristeza enorme no peito. 😢',tea:'Perder dói. É normal sentir tristeza.<br>Mas o que fazemos a seguir?',btn:'Continuar ➜'},
+  {ill:'😤💥',bubble:'O Martim ficou com muita raiva!<br>O coração batia muito rápido! 💓💓',tea:'Quando ficamos nervosos,<br>o nosso corpo avisa-nos.<br>A pulseira sentiu o teu coração!',btn:'Continuar ➜'},
+  {ill:'⏸️🍵',bubble:'O Doutor Chá apareceu e disse:<br>"<strong>Vamos fazer uma pausa!</strong>" ⏸️',tea:'Não precisas de fazer nada.<br>Eu estou aqui contigo.<br>Vamos respirar juntos.',btn:'Continuar ➜'},
+  {ill:'🧘🔺',bubble:'O Martim respirou com o triângulo…<br>Inspira… Segura… Expira… 🔺<br>E sentiu-se <strong>muito melhor</strong>! 😌',tea:'A respiração 4-4-4 ajuda o corpo<br>a ficar calmo outra vez.<br>Tu consegues fazer isto!',btn:'Continuar ➜'},
+  {ill:'🌟🎮',bubble:'O Martim voltou a jogar.<br>Desta vez, mesmo que perca,<br>sabe que <strong>consegue acalmar-se</strong>! 💚',tea:'Muito bem! Perder faz parte.<br>O importante é tentar outra vez.<br>Vamos jogar? 🎮',btn:'🎮 Vamos Jogar!'},
+];
+let sceneIdx=0;
+function initStory(){sceneIdx=0;renderScene();}
+function renderScene(){
+  const s=scenes[sceneIdx];
+  document.getElementById('sIllust').textContent=s.ill;
+  document.getElementById('sBubble').innerHTML=s.bubble;
+  document.getElementById('sTea').innerHTML=s.tea;
+  document.getElementById('sBtn').textContent=s.btn;
+  let dots='';for(let i=0;i<scenes.length;i++)dots+=`<div class="d ${i===sceneIdx?'on':''}"></div>`;
+  document.getElementById('sDots').innerHTML=dots;
+  if(sceneIdx===3||sceneIdx===4){updateStressHud('story',60,88);}else{updateStressHud('story',15,bpmBaseline);}
+}
+function nextScene(){sceneIdx++;if(sceneIdx>=scenes.length){sceneIdx=0;addPoints(5);startGame();return;}renderScene();}
+function updateStressHud(p,pct,bpm){
+  const bar=document.getElementById(p+'StressBar');
+  const emoji=document.getElementById(p+'StressEmoji');
+  const bpmEl=document.getElementById(p+'Bpm');
+  bar.style.width=pct+'%';
+  bar.className='bar-fill'+(pct>60?' high':pct>35?' med':'');
+  emoji.textContent=pct>60?'😰':pct>35?'😐':'😊';
+  if(bpmEl)bpmEl.textContent=bpm;
+}
+
+// EMOTION GAME (RF9)
+const emoRounds=[
+  {target:'Triste',emoji:'😢',options:[{e:'😊',l:'Feliz'},{e:'😢',l:'Triste'},{e:'😠',l:'Zangado'},{e:'😨',l:'Assustado'}]},
+  {target:'Feliz',emoji:'😊',options:[{e:'😢',l:'Triste'},{e:'😊',l:'Feliz'},{e:'😨',l:'Assustado'},{e:'😠',l:'Zangado'}]},
+  {target:'Zangado',emoji:'😠',options:[{e:'😊',l:'Feliz'},{e:'😨',l:'Assustado'},{e:'😠',l:'Zangado'},{e:'😢',l:'Triste'}]},
+  {target:'Assustado',emoji:'😨',options:[{e:'😠',l:'Zangado'},{e:'😢',l:'Triste'},{e:'😊',l:'Feliz'},{e:'😨',l:'Assustado'}]},
+];
+let emoRound=0;
+function startGame(){emoRound=0;wrongCount=0;stressLevel=0;updateStressHud('game',15,bpmBaseline);loadEmoRound();go('game');}
+function loadEmoRound(){
+  const r=emoRounds[emoRound%emoRounds.length];
+  document.getElementById('gamePrompt').textContent=`Qual é a emoção: ${r.emoji}?`;
+  document.getElementById('gameFb').textContent='';
+  const g=document.getElementById('gameGrid');
+  const sh=[...r.options].sort(()=>Math.random()-.5);
+  g.innerHTML=sh.map(o=>`<div class="game-card" onclick="pickEmo(this,'${o.l}','${r.target}')"><span>${o.e}</span><span class="emo-label">${o.l}</span></div>`).join('');
+}
+function pickEmo(el,picked,target){
+  if(el.classList.contains('correct')||el.classList.contains('wrong'))return;
+  if(picked===target){
+    el.classList.add('correct');document.getElementById('gameFb').textContent='Boa! Acertaste! 🎉 +3⭐';stats.retried++;addPoints(3);
+    setTimeout(()=>{emoRound++;if(emoRound>=emoRounds.length){stats.badges++;addPoints(15);go('reward','Parabéns! 🌟');}else loadEmoRound();},1200);
+  }else{
+    el.classList.add('wrong');wrongCount++;stressLevel=Math.min(5,stressLevel+1);
+    const pct=stressLevel*18,bpm=Math.round(bpmBaseline+stressLevel*8);
+    updateStressHud('game',pct,bpm);
+    document.getElementById('gameFb').innerHTML='Não faz mal… vamos tentar outra vez 💚';
+    if(stressLevel>=3){lastGameScreen='game';setTimeout(()=>{go('calm-choice','Vamos acalmar… 💨');},1000);}
+    else{setTimeout(()=>{el.classList.remove('wrong');document.getElementById('gameFb').textContent='';},1500);}
+  }
+}
+
+// ========== JOGO MEMÓRIA ==========
+const memEmojis=['🌟','🌈','🌻','🍒','🦋','🚀'];
+let memCards=[],memFlipped=[],memMatched=0,memTries=0,memLocked=false,memStress=0;
+function startMemory(){
+  memMatched=0;memTries=0;memStress=0;memLocked=false;
+  memCards=[...memEmojis,...memEmojis].sort(()=>Math.random()-.5);
+  updateStressHud('mem',15,bpmBaseline);
+  document.getElementById('memPairs').textContent='0';
+  document.getElementById('memTries').textContent='0';
+  document.getElementById('memFb').textContent='';
+  renderMemory();
+  go('game-memory');
+}
+function renderMemory(){
+  document.getElementById('memGrid').innerHTML=memCards.map((e,i)=>{
+    const show=memFlipped.includes(i)||memCards[i]==='✅';
+    return `<div class="mem-card ${show?'flipped':''} ${memCards[i]==='\u2705'?'matched':''}" onclick="flipMem(${i})">${show?e:'❓'}</div>`;
+  }).join('');
+}
+function flipMem(i){
+  if(memLocked||memFlipped.includes(i)||memCards[i]==='✅')return;
+  memFlipped.push(i);
+  renderMemory();
+  if(memFlipped.length===2){
+    memLocked=true;memTries++;
+    document.getElementById('memTries').textContent=memTries;
+    const[a,b]=memFlipped;
+    if(memCards[a]===memCards[b]){
+      memMatched++;addPoints(2);
+      document.getElementById('memPairs').textContent=memMatched;
+      document.getElementById('memFb').textContent='Par encontrado! 🎉 +2⭐';
+      setTimeout(()=>{memCards[a]='✅';memCards[b]='✅';memFlipped=[];memLocked=false;renderMemory();
+        if(memMatched>=6){stats.badges++;addPoints(15);go('reward','Todos os pares! 🌟');}
+      },600);
+    }else{
+      memStress=Math.min(5,memStress+1);
+      updateStressHud('mem',memStress*18,Math.round(bpmBaseline+memStress*6));
+      document.getElementById('memFb').textContent='Não é par… tenta outra vez 💚';
+      if(memStress>=3){lastGameScreen='game-memory';setTimeout(()=>{go('calm-choice','Vamos acalmar… 💨');},1000);}
+      else{setTimeout(()=>{memFlipped=[];memLocked=false;renderMemory();document.getElementById('memFb').textContent='';},1000);}
+    }
+  }
+}
+
+// ========== JOGO NÚMEROS ==========
+let numRound=0,numCorrect=0,numStress=0;
+const numSequences=[
+  {seq:[2,4,6,8],answer:10,opts:[9,10,12]},
+  {seq:[1,3,5,7],answer:9,opts:[8,9,11]},
+  {seq:[3,6,9,12],answer:15,opts:[13,15,18]},
+  {seq:[5,10,15,20],answer:25,opts:[22,25,30]},
+  {seq:[1,1,2,3,5],answer:8,opts:[6,7,8]},
+];
+function startNumbers(){
+  numRound=0;numCorrect=0;numStress=0;
+  updateStressHud('num',15,bpmBaseline);
+  loadNumRound();
+  go('game-numbers');
+}
+function loadNumRound(){
+  const r=numSequences[numRound];
+  document.getElementById('numRound').textContent=(numRound+1);
+  document.getElementById('numFb').textContent='';
+  document.getElementById('numSeq').innerHTML=r.seq.map(n=>`<div class="num-bubble">${n}</div>`).join('')+'<div class="num-bubble" style="background:var(--yellow);color:var(--text);">?</div>';
+  const opts=[...r.opts].sort(()=>Math.random()-.5);
+  document.getElementById('numOpts').innerHTML=opts.map(n=>`<div class="num-opt" onclick="pickNum(this,${n},${r.answer})">${n}</div>`).join('');
+}
+function pickNum(el,picked,answer){
+  if(el.classList.contains('correct')||el.classList.contains('wrong'))return;
+  if(picked===answer){
+    el.classList.add('correct');numCorrect++;addPoints(3);
+    document.getElementById('numFb').textContent='Certo! 🎉 +3⭐';
+    setTimeout(()=>{numRound++;if(numRound>=numSequences.length){stats.badges++;addPoints(15);go('reward','Mestre dos números! 🌟');}else loadNumRound();},1200);
+  }else{
+    el.classList.add('wrong');numStress=Math.min(5,numStress+1);
+    updateStressHud('num',numStress*18,Math.round(bpmBaseline+numStress*7));
+    document.getElementById('numFb').textContent='Não é esse… tenta outro! 💚';
+    if(numStress>=3){lastGameScreen='game-numbers';setTimeout(()=>{go('calm-choice','Vamos acalmar… 💨');},1000);}
+    else{setTimeout(()=>{el.classList.remove('wrong');},1500);}
+  }
+}
+
+// ========== JOGO DO GALO ==========
+let tttBoard,tttTurn,tttOver,tttStress=0;
+function startTTT(){
+  tttBoard=['','','','','','','','',''];tttTurn='X';tttOver=false;tttStress=0;
+  updateStressHud('ttt',15,bpmBaseline);
+  document.getElementById('tttFb').textContent='';
+  document.getElementById('tttStatus').textContent='Tu: ❌ • Doutor Chá: ⭕';
+  renderTTT();
+  go('game-ttt');
+}
+function renderTTT(){
+  document.getElementById('tttGrid').innerHTML=tttBoard.map((c,i)=>{
+    const sym=c==='X'?'❌':c==='O'?'⭕':'';
+    return `<div class="ttt-cell" onclick="playTTT(${i})">${sym}</div>`;
+  }).join('');
+}
+function playTTT(i){
+  if(tttBoard[i]||tttOver)return;
+  tttBoard[i]='X';renderTTT();
+  const w=checkTTTWin();
+  if(w){endTTT(w);return;}
+  if(!tttBoard.includes('')){endTTT('draw');return;}
+  // AI move (simple)
+  setTimeout(()=>{
+    tttAI();renderTTT();
+    const w2=checkTTTWin();
+    if(w2){endTTT(w2);return;}
+    if(!tttBoard.includes('')){endTTT('draw');}
+  },500);
+}
+function tttAI(){
+  // Easy AI: 50% chance of smart move, 50% random (let the child win often)
+  const tryWin=(p)=>{for(let i=0;i<9;i++){if(!tttBoard[i]){tttBoard[i]=p;if(checkTTTWin()===p){tttBoard[i]='';return i;}tttBoard[i]='';}}return-1;};
+  // Always try to win if can (rewarding for child to block)
+  let m=tryWin('O');if(m>=0){tttBoard[m]='O';return;}
+  // Only block 40% of the time — let the child win!
+  if(Math.random()<0.4){m=tryWin('X');if(m>=0){tttBoard[m]='O';return;}}
+  // Random move
+  const empty=tttBoard.map((c,i)=>c?-1:i).filter(i=>i>=0);
+  tttBoard[empty[Math.floor(Math.random()*empty.length)]]='O';
+}
+const tttLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function checkTTTWin(){
+  for(const[a,b,c]of tttLines){
+    if(tttBoard[a]&&tttBoard[a]===tttBoard[b]&&tttBoard[b]===tttBoard[c])return tttBoard[a];
+  }
+  return null;
+}
+function endTTT(result){
+  tttOver=true;
+  if(result==='X'){
+    document.getElementById('tttFb').textContent='Ganhaste! 🎉 +5⭐';addPoints(5);stats.retried++;
+    // Highlight winning cells
+    for(const[a,b,c]of tttLines){if(tttBoard[a]==='X'&&tttBoard[b]==='X'&&tttBoard[c]==='X'){
+      document.querySelectorAll('.ttt-cell')[a].classList.add('win');
+      document.querySelectorAll('.ttt-cell')[b].classList.add('win');
+      document.querySelectorAll('.ttt-cell')[c].classList.add('win');
+    }}
+  }else if(result==='O'){
+    tttStress=Math.min(5,tttStress+2);
+    updateStressHud('ttt',tttStress*18,Math.round(bpmBaseline+tttStress*8));
+    document.getElementById('tttFb').textContent='O Doutor Chá ganhou desta vez! 💚';
+    if(tttStress>=3){lastGameScreen='game-ttt';setTimeout(()=>{go('calm-choice','Vamos acalmar… 💨');},1500);}
+  }else{
+    document.getElementById('tttFb').textContent='Empate! Boa estratégia! 🤝 +2⭐';addPoints(2);
+  }
+}
+
+// SENSOR
+function simulateStress(){
+  const fill=document.getElementById('sensorFill'),ring=document.getElementById('iotRing');
+  const emoji=document.getElementById('sensorEmoji'),label=document.getElementById('sensorLabel');
+  const bubble=document.getElementById('sensorBubble');
+  setTimeout(()=>{fill.className='meter-fill med';ring.className='iot-ring med';emoji.textContent='😐';label.textContent='Médio';
+    document.getElementById('ldGsr').textContent='3.8';document.getElementById('ldBpm').textContent='88';document.getElementById('ldSi').textContent='1.32';
+    bubble.innerHTML='Stress médio detetado. 💛<br>Está tudo bem!';},400);
+  setTimeout(()=>{fill.className='meter-fill high';ring.className='iot-ring high';emoji.textContent='😰';label.textContent='Stress';
+    document.getElementById('ldGsr').textContent='5.2';document.getElementById('ldBpm').textContent='105';document.getElementById('ldSi').textContent='1.68';
+    bubble.innerHTML='⚠️ Stress_Index > 1.45!<br>Intervenção automática ativada.';},2200);
+  setTimeout(()=>{go('calm-choice','Sensor ativou modo calma… 💨');},3800);
+}
+
+// BREATHING 4-4-4
+function startBreathing(){
+  document.getElementById('triPath').classList.add('animating');
+  let step=0;const phases=['Inspira… 4s 🌬️','Segura… 4s','Expira… 4s 😌'];
+  const el=document.getElementById('breathPhase');
+  const progs=document.querySelectorAll('#breathProg span');
+  progs.forEach(p=>p.classList.remove('done'));
+  clearInterval(breathInterval);
+  breathInterval=setInterval(()=>{el.textContent=phases[step%3];
+    if(step%3===2){const idx=Math.floor(step/3);if(idx<progs.length)progs[idx].classList.add('done');}
+    step++;if(step>=15){clearInterval(breathInterval);finishCalm();}
+  },4000);
+}
+
+// TICKLE/PURR
+function startTickle(){
+  let step=0;const el=document.getElementById('ticklePhase');
+  const progs=document.querySelectorAll('#tickleProg span');
+  progs.forEach(p=>p.classList.remove('done'));
+  const pats=['Vibração 1… 📳','Vibração 2… 📳','Vibração 3… 📳','Pausa… 😌'];
+  clearInterval(tickleInterval);
+  tickleInterval=setInterval(()=>{el.textContent=pats[step%4];
+    if(step%4===3){const idx=Math.floor(step/4);if(idx<progs.length)progs[idx].classList.add('done');}
+    step++;if(step>=20){clearInterval(tickleInterval);finishCalm();}
+  },700);
+}
+
+let lastGameScreen='game'; // track which game triggered calm
+
+function finishCalm(){
+  stats.calmed++;stressLevel=0;memStress=0;numStress=0;tttStress=0;addPoints(10);
+  document.getElementById('sensorFill').className='meter-fill';
+  document.getElementById('sensorFill').style.width='20%';
+  document.getElementById('iotRing').className='iot-ring';
+  document.getElementById('sensorEmoji').textContent='😊';
+  document.getElementById('sensorLabel').textContent='Calmo';
+  document.getElementById('sensorBubble').innerHTML='O teu sensor mostra que estás <strong>calmo</strong>. 💚 Muito bem!';
+  document.getElementById('ldGsr').textContent=gsrBaseline;
+  document.getElementById('ldBpm').textContent=bpmBaseline;
+  document.getElementById('ldSi').textContent='0.95';
+  showOverlay('Estás mais calmo! Vamos voltar. 💚',()=>{
+    // Reset stress in all games
+    document.querySelectorAll('.game-card.wrong').forEach(c=>c.classList.remove('wrong'));
+    if(document.getElementById('gameFb'))document.getElementById('gameFb').textContent='Estás pronto! Tenta outra vez 💚';
+    updateStressHud('game',15,bpmBaseline);
+    updateStressHud('mem',15,bpmBaseline);
+    updateStressHud('num',15,bpmBaseline);
+    updateStressHud('ttt',15,bpmBaseline);
+    switchTo(lastGameScreen);
+  });
+}
+
+// REWARD
+function spawnConfetti(){
+  const c=document.getElementById('confetti');c.innerHTML='';
+  const cols=['#B8E8D0','#F5E6A3','#B8D8E8','#F5D5C8','#E8B8A6','#7DCBA8'];
+  for(let i=0;i<40;i++){const p=document.createElement('div');p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';p.style.background=cols[i%cols.length];
+    p.style.animationDelay=Math.random()*1.5+'s';p.style.width=(6+Math.random()*8)+'px';p.style.height=(6+Math.random()*8)+'px';
+    c.appendChild(p);}
+  document.getElementById('rwCalm').textContent=stats.calmed+'×';
+  document.getElementById('rwRetry').textContent=stats.retried+'×';
+}
+
+function updateProgress(){
+  document.getElementById('pCalm').textContent=stats.calmed+' vezes';
+  document.getElementById('pRetry').textContent=stats.retried+' vezes';
+  document.getElementById('pBadge').textContent=stats.badges;
+  document.getElementById('pAvgBpm').textContent=bpmBaseline;
+}
+
+// DASHBOARD CHARTS
+function buildCharts(){
+  const bpm=[{d:'Seg',v:82},{d:'Ter',v:78},{d:'Qua',v:75},{d:'Qui',v:74},{d:'Sex',v:72},{d:'Sáb',v:71},{d:'Dom',v:70}];
+  const pauses=[{d:'Seg',v:4},{d:'Ter',v:3},{d:'Qua',v:3},{d:'Qui',v:2},{d:'Sex',v:2},{d:'Sáb',v:1},{d:'Dom',v:1}];
+  renderChart('bpmChart',bpm,100,'var(--peach-dark)','var(--mint-dark)');
+  renderChart('pauseChart',pauses,5,'var(--yellow-dark)','var(--blue-dark)');
+  buildHotspots();
+  updateAdaptiveThreshold();
+}
+function renderChart(id,data,max,cH,cL){
+  document.getElementById(id).innerHTML=data.map(d=>{
+    const h=Math.max(8,(d.v/max)*90);const c=d.v>max*.7?cH:cL;
+    return `<div class="bar-col"><div class="bar-val">${d.v}</div><div class="bar-rect" style="height:${h}px;background:${c};"></div><div class="bar-day">${d.d}</div></div>`;
+  }).join('');
+}
+
+// ========== 1. ALGORITMO ADAPTATIVO (Context-Aware) ==========
+// Fórmula: Limiar_Efetivo = Limiar_Base × Fator_CheckIn
+// Cada resposta negativa no check-in reduz o fator em 0.05 (limiar desce → mais proteção)
+let adaptiveThreshold=1.45;
+function calcAdaptiveFactor(){
+  if(!ciAnswers.length)return 1.0;
+  let negCount=0;
+  checkinQs.forEach((q,i)=>{
+    const ans=ciAnswers[i];
+    if(q.positive&&!ans)negCount++; // dormiu mal, não se sente bem, ninguém fez feliz
+    if(!q.positive&&ans)negCount++; // algo magoou, nervoso
+  });
+  // Cada resposta negativa reduz 7% (max 5 perguntas → pode descer até 0.65)
+  return Math.max(0.65, 1.0 - (negCount * 0.07));
+}
+function updateAdaptiveThreshold(){
+  const factor=calcAdaptiveFactor();
+  adaptiveThreshold=+(1.45*factor).toFixed(2);
+  const pct=Math.round(factor*100);
+  let level,color;
+  if(pct>=90){level='Ótimo';color='var(--mint)';}
+  else if(pct>=70){level='Moderado';color='var(--yellow)';}
+  else{level='Vulnerável';color='var(--peach)';}
+  
+  const el=document.getElementById('thCheckinInfo');
+  if(el){
+    el.textContent='Check-in: '+level+' ('+pct+'%) → Fator = '+factor.toFixed(2);
+    document.getElementById('thResult').textContent='Limiar_Efetivo = '+adaptiveThreshold;
+    document.getElementById('thVal').textContent=adaptiveThreshold;
+    document.getElementById('thMarker').style.left=(adaptiveThreshold/2*100)+'%';
+    
+    const tags=document.getElementById('thTags');
+    const labels=['😴 Sono','😊 Bem-estar','💔 Mágoa','😰 Nervosismo','👨‍👩‍👦 Felicidade'];
+    tags.innerHTML=checkinQs.map((q,i)=>{
+      const good=(q.positive&&ciAnswers[i])||(!q.positive&&!ciAnswers[i]);
+      const delta=good?'+0%':'-7%';
+      const bg=good?'var(--mint)':'var(--peach)';
+      return '<span class="th-tag" style="background:'+bg+';">'+labels[i]+' → '+delta+'</span>';
+    }).join(' ');
+  }
+}
+
+// ========== 2. HAPTIC CLOSED-LOOP ==========
+// freq_vibração = 210 - ((BPM_atual - BPM_baseline) × 2.5)
+// Quando BPM desce → vibração abranda → ressonância tátil
+let hapticDemoIv=null;
+function demoHapticSync(){
+  clearInterval(hapticDemoIv);
+  let simBpm=105; // start high
+  const heart=document.getElementById('hsHeart');
+  const bpmEl=document.getElementById('hsBpm');
+  const freqEl=document.getElementById('hsFreq');
+  const syncEl=document.getElementById('hsSync');
+  const waves=document.querySelectorAll('#hsWave span');
+  
+  hapticDemoIv=setInterval(()=>{
+    simBpm=Math.max(bpmBaseline,simBpm-Math.round(2+Math.random()*3));
+    const freq=Math.max(80,Math.round(210-((simBpm-bpmBaseline)*2.5)));
+    const period=1000/(simBpm/60);
+    bpmEl.textContent=simBpm;
+    freqEl.textContent=freq;
+    syncEl.textContent=simBpm>bpmBaseline+10?'Ativo':'Sync ✓';
+    syncEl.style.color=simBpm>bpmBaseline+10?'var(--peach-dark)':'var(--mint-dark)';
+    heart.style.animationDuration=Math.round(period)+'ms';
+    const waveSpeed=(.3+(freq/210)*.7).toFixed(2);
+    waves.forEach(w=>w.style.animationDuration=waveSpeed+'s');
+    if(simBpm<=bpmBaseline){
+      clearInterval(hapticDemoIv);
+      syncEl.textContent='Calmo ✓';
+      syncEl.style.color='var(--mint-dark)';
+    }
+  },800);
+}
+
+// ========== 3. HOTSPOTS DE FRUSTRAÇÃO ==========
+const hotspotData=[
+  {scene:'Cena 1',label:'🧸 Jogar',si:0.82,pct:12},
+  {scene:'Cena 2',label:'🎲 Difícil',si:1.15,pct:38},
+  {scene:'Cena 3',label:'❌ Perda',si:1.52,pct:78,flag:'⚠️'},
+  {scene:'Cena 4',label:'😤 Raiva',si:1.71,pct:95,flag:'🔥'},
+  {scene:'Cena 5',label:'⏸️ Pausa',si:1.30,pct:52},
+  {scene:'Cena 6',label:'🧘 Respira',si:0.95,pct:18},
+  {scene:'Cena 7',label:'🌟 Volta',si:0.88,pct:14},
+];
+function buildHotspots(){
+  const el=document.getElementById('hotspotTimeline');
+  if(!el)return;
+  el.innerHTML=hotspotData.map(h=>{
+    const color=h.pct>70?'var(--peach-dark)':h.pct>40?'var(--yellow-dark)':'var(--mint-dark)';
+    return `<div class="ht-row">
+      <div class="ht-scene">${h.scene}<br>${h.label}</div>
+      <div class="ht-bar-track"><div class="ht-bar-fill" style="width:${h.pct}%;background:${color};"></div>${h.flag?'<div class="ht-flag">'+h.flag+'</div>':''}</div>
+      <div class="ht-peak" style="color:${color};">${h.si}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== 4. GAMIFICAÇÃO COLABORATIVA ==========
+// (Já implementado no HTML — barra comunitária substitui ranking)
+
+// ========== 5. ZENCOINS + VALIDAÇÃO PARENTAL ==========
+let zenCoins=4; // demo
+let parentPinValid=false;
+const PARENT_PIN='0000';
+
+function updateZenCoins(){
+  const el=document.getElementById('zcPts');
+  if(el)el.textContent='💎 '+zenCoins+' ZenCoins';
+}
+function convertToZenCoins(){
+  const convertible=Math.floor(playerPoints/10);
+  if(convertible<=0){showOverlay('Precisas de pelo menos 10⭐!',()=>{});return;}
+  playerPoints-=convertible*10;
+  zenCoins+=convertible;
+  updateZenCoins();
+  renderShop();
+  showOverlay('🔄 Convertido! +'+convertible+' ZenCoins',()=>{});
+}
+function pinNext(n){
+  const el=document.getElementById('pin'+(n+1));
+  if(el)el.focus();
+  if(n===4)validatePin();
+}
+function validatePin(){
+  const pin=[1,2,3,4].map(i=>document.getElementById('pin'+i).value).join('');
+  if(pin===PARENT_PIN){
+    parentPinValid=true;
+    document.getElementById('pinErr').innerHTML='<span style="color:var(--mint-dark)">✅ PIN válido! Resgate autorizado.</span>';
+  }else if(pin.length===4){
+    parentPinValid=false;
+    document.getElementById('pinErr').textContent='❌ PIN incorreto';
+  }
+}
+
+const _origConfirm=confirmRedeem;
+confirmRedeem=function(){
+  if(!pendingPrize)return;
+  if(pendingPrize.cost>=40&&!parentPinValid){
+    document.getElementById('modalErr').textContent='🔐 Prémios ≥40⭐ requerem PIN parental!';
+    return;
+  }
+  _origConfirm();
+  parentPinValid=false;
+  [1,2,3,4].forEach(i=>{document.getElementById('pin'+i).value='';});
+  document.getElementById('pinErr').textContent='';
+}
+</script>
+</body>
+</html>
